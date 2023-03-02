@@ -33,6 +33,8 @@ int CANConnection::openConnection(const char* interface_name) {
     if ((sockfd = socket(PF_CAN, SOCK_RAW | SOCK_NONBLOCK, CAN_RAW)) < 0) {  // might be AF_CAN
        perror("Socket Failed");
        connOpen = false;
+
+       return -1;
     }
 
     struct ifreq ifr;
@@ -40,6 +42,8 @@ int CANConnection::openConnection(const char* interface_name) {
     ioctl(sockfd, SIOCGIFINDEX, &ifr);
 
     connOpen = true;
+
+    return 0;
 }
 
 
@@ -62,6 +66,8 @@ int CANConnection::writeFrame(uint32_t canId, uint8_t data[], int nBytes) {
        perror("Failed to write");
        return -2;
     }
+
+    return 0;
 }
 
 
