@@ -8,33 +8,44 @@
 #define SPARKMAXMC_HPP
 
 
+#include "CANConnection.hpp"
 #include "CANDevice.hpp"
 
 
 class SparkMaxMC : public CANDevice {
-    protected:
-        // Creates a can frame and sends it over the can network.
+    private:
+        // method for generating the can frame ID for a spark max
+        // motor controller based on its api class and index
         //
         // Params:
-        //    canFrameId - the integer containing 29 bits that correspond to the 
-        //                 id of the can frame
-        //    data       - the data to be sent
-        //    nBytes     - the number of bytes to send in the packet. Same as length of
-        //                 data
+        //    apiClass - the API Class integer from the spark max docs
+        //    apiIndex - the API Index integer from the spark max docs
         // Return:
-        //    int - if the frame was written successfully
-        int _sendFrame(uint32_t canFrameId, uint8_t data[], int nBytes) override;
-
+        //    uint32_t - the can frame id
+        uint32_t getCanFrameId(int apiClass, int apiIndex);
 
     public:
-        // ctor
+        // default ctor. Does not initialize anything about the device and this
+        // should be done later if the instance is to be used successfully
         //
         // Params:
+        //    None
+        // Return:
+        //    The new instance
+        SparkMaxMC();
+
+
+        // ctor. Initializes connection and the device id
+        //
+        // Params:
+        //    connection  - a reference to the connection instance for the CAN network
         //    canDeviceId - the id to use for this motor controller. Can be set using
         //                  the REV Hardware client
         // Return:
         //    The new instance
-        SparkMaxMC(int canDeviceId);
+        SparkMaxMC(CANConnection& connection, int canDeviceId);
+
+
 
 
         // Takes an incoming CAN Frame and responds accordingly.
@@ -46,6 +57,8 @@ class SparkMaxMC : public CANDevice {
         // Return:
         //    None
         void _parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LENGTH]) override;
+
+
 
 
         // (Speed Set) sets the target velocity of the motor in RPM. 
@@ -92,10 +105,10 @@ class SparkMaxMC : public CANDevice {
         // controller where the target position is in rotations
         //
         // Params:
-        //    targetPosition: - the target position in rotations
+        //    targetRotations: - the target position in rotations
         // Return:
         //    int - if the command was sent successfully  
-        int smartPositionSet(float targetPosition);
+        int smartPositionSet(float targetRotations);
 
 
         // (Identify) Causes the motor controller LED to flash

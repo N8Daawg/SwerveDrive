@@ -13,31 +13,16 @@
 
 class CANDevice {
     protected:
-        uint8_t deviceId;    // the device can id 
-        CANConnection conn;  // the can network connection instance
-
-
-        // Creates a can frame and sends it over the can network. Must be
-        // overriden
-        //
-        // Params:
-        //    canFrameId - the integer containing 29 bits that correspond to the 
-        //                 id of the can frame
-        //    data       - the data to be sent
-        //    nBytes     - the number of bytes to send in the packet. Same as length of
-        //                 data
-        // Return:
-        //    int - if the frame was written successfully
-        virtual int _sendFrame(uint32_t canFrameId, uint8_t data[], int nBytes) = 0;
-
+        uint8_t deviceId;            // the device can id 
+        CANConnection *conn = NULL;  // the can network connection instance, default to null
 
     public: 
-        // Virtual Destructor. Must be overriden
+        // Virtual Destructor.
         virtual ~CANDevice() {};
 
         // Takes an incoming CAN Frame and responds accordingly. Must be
         // overriden. This method should likely be used in a loop so that
-        // all frames can be read.
+        // all frames can be read without blocking.
         //
         // Params:
         //    canFrameId - the integer containing 29 bits that correspond to the 
@@ -64,6 +49,15 @@ class CANDevice {
         // Return:
         //    None
         void setDeviceId(uint8_t newId) {deviceId = newId;}
+
+
+        // Sets a new connection for the CAN device
+        // 
+        // Params:
+        //    newConn - a reference to the connection object to use
+        // Return:
+        //    None
+        void setConnection(CANConnection& newConn) {conn = &newConn;}
 };
 
 

@@ -44,6 +44,12 @@ void decodeCanFrameID(uint32_t msg, can_id_params* msg_params) {
 }
 
 
+// bitmasks to get the device
+int decodeCanFrameDevice(uint32_t msg) {
+    return msg & (0xFF >> (8 - DEVICE_NUMBER_BITS));
+}
+
+
 // populates an array of bytes from an integer with the msb at index 0
 // and the lsb at index numBytes - 1
 void int64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes) {

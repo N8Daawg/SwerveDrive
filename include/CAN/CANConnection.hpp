@@ -7,17 +7,37 @@
 #ifndef CANCONNECTION_HPP
 #define CANCONNECTION_HPP
 
+
+#include <linux/can.h>
+
 #include <mutex>
+#include <thread>
+#include <list>
 
 
 #define PACKET_LENGTH 8  // number of bytes in each packet. This should always be 8
 
 class CANConnection {
     private:
-        bool connOpen;          // flag to know if the connection is currently open
-        std::mutex conn_mutex;  // mutex to make read and write operations thread-safe
+        bool connOpen;           // flag to know if the connection is currently open
+        int sockfd;              // the socket where the CAN network is open
+        std::mutex connMutex;   // mutex to make writes to CAN bus thread-safe
 
-        int sockfd;                  // the socket where the CAN network is open
+        std::list<struct can_frame> frameQueue;  // the data structure that holds all incoming messages
+        int messagesToRead = 10;                 // the number of messages to read at one time in the read thread
+        bool runReadThread;                      // boolean to determine whether to read messages to the vector
+        std::mutex queueMutex;                   // mutex to make reads and writes to message vector thread-safe
+        std::thread readThread;                  // the thread that reads from the socket
+
+        // Should be the target of a detached thread. Runs forever continuously
+        // reading frames from the CAN bus and storing them to be handled
+        // efficiently later
+        //
+        // Params:
+        //    None
+        // Return:
+        //    None
+        void _readThread();
 
 
     public:
@@ -65,14 +85,45 @@ class CANConnection {
         int writeFrame(uint32_t canId, uint8_t data[], int nBytes);
 
 
-        // Attempts to read a frame from the CAN network. Returns 0 if data was read
+        // Attempts to read the next frame from the CAN network that was stored in the message
+        // queue. Returns 0 if data was read
         //
         // Params:
         //    *canId - a pointer to a 32 bit integer where the can id will be placed
         //    data   - an array of bytes for the data to be placed if a frame is read
         // Return:
-        //    int - 0 if successful, -1 if connection not open, -2 if some other error occurred (i.e. no frame to read)
-        int readFrame(uint32_t *canId, uint8_t data[PACKET_LENGTH]);
+        //    int - 0 if successful, -1 if connection not open, -2 if no data, -3 unknown error
+        int readNextFrame(uint32_t *canId, uint8_t data[PACKET_LENGTH]);
+
+
+        // Stops the read thread by clearing the flag
+        // 
+        // Params:
+        //    None
+        // Return:
+        //    None
+        void stopReading() {runReadThread = false;}
+
+
+        // Starts the read thread by setting the flag
+        // 
+        // Params:
+        //    None
+        // Return:
+        //    None
+        void startReading() {runReadThread = true;}
+
+
+        // Sets a new number of messages to read on each iteration of
+        // the read thread
+        // 
+        // Params:
+        //    newN - the new number of messages to read at a time
+        // Return:
+        //    None
+        void setMessagesToRead(int newN) {messagesToRead = newN;}
+
+
 };
 
 #endif

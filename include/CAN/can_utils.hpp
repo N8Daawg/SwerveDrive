@@ -6,6 +6,10 @@
 //     https://docs.huihoo.com/doxygen/linux/kernel/3.7/can_8h_source.html
 //
 // Author: Aiden Carney
+
+#ifndef CAN_UTILS_HPP
+#define CAN_UTILS_HPP
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +52,15 @@ uint32_t genCanFrameID(can_id_params* msg_params);
 // Return:
 //    None
 void decodeCanFrameID(uint32_t msg, can_id_params* msg_params);
+
+
+// decodes the device can id from a can frame id
+// 
+// Params:
+//    msg - the can frame id
+// Return:
+//    int - the device id 
+int decodeCanFrameDevice(uint32_t msg);
 
 
 // populates an array of bytes from an integer
@@ -96,3 +109,6 @@ int64_t bytesToint64(uint8_t bytes[], uint8_t numBytes);
 // Return:
 //    float - the decoded floating point number
 float bytesToFloat(uint8_t bytes[], uint8_t numBytes);
+
+
+#endif

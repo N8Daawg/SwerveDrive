@@ -7,11 +7,13 @@ OBJ_DIR := $(BASEDIR)/out
 EXE := $(BASEDIR)/main
 
 CXX=g++
-CXXFLAGS=-I$(IDIR)
+CXXFLAGS=-I$(IDIR) -pthread
 
-LIBS=-lpthread -lm
+LIBS=-lm
 LDFLAGS :=
 
+
+# Probably don't need to change anything below this
 
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/**/*.cpp) 
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRC_FILES))
@@ -20,13 +22,13 @@ DEP_FILES := $(patsubst $(SRC_DIR)/%.cpp, %.d, $(SRC_FILES))
 
 quick: $(OBJ_FILES)
 	@echo Creating Executable: $(EXE)
-	@$(CXX) $(LIBS) $(LDFLAGS) -o $(EXE) $^
+	@$(CXX) $(CXXFLAGS) $(LIBS) $(LDFLAGS) -o $(EXE) $^
 
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp Makefile
 	@mkdir -p $(@D)
 	@echo Compiling $<
-	@$(CXX) $(CXXFLAGS) $(CXXFLAGS) -MMD -MP -c -o $@ $<
+	@$(CXX) $(CXXFLAGS) -MMD -MP -c -o $@ $<
 
 -include $(DEP_FILES)
 

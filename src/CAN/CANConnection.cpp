@@ -2,6 +2,7 @@
 #include <linux/can/raw.h>
 #include <linux/if.h>
 
+#include <chrono>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,12 +17,52 @@
 // Sets the connection open flag to false
 CANConnection::CANConnection() {
     connOpen = false;
+    runReadThread = true;
+
+    readThread = std::thread(&CANConnection::_readThread, this);
 }
 
 
 // the connection open flag will be set by the function call
 CANConnection::CANConnection(const char* interface_name) {
     openConnection(interface_name);
+    runReadThread = true;
+
+    readThread = std::thread(&CANConnection::_readThread, this);
+}
+
+
+// uses an infinite loop that delays for a period after every execution. Attempts to read
+// messagesToRead number of frames, if no data is available this thread will sleep.
+// Accesses the messages queue with a mutex so that it is thread safe
+void CANConnection::_readThread() {
+    while(true) {
+        std::this_thread::sleep_for(std::chrono::microseconds(500)); // sleep for half a milli second
+
+        if(!runReadThread) continue;  // make sure we should be reading
+        if(!connOpen) continue;       // make sure connection is opened properly
+
+        struct can_frame frames[messagesToRead];  // attempt to read data
+        for(int i=0; i<messagesToRead; i++) {
+            int nbytes;
+            struct can_frame frame;
+            nbytes = read(sockfd, &frame, sizeof(struct can_frame));
+            if (nbytes < 0) {  // don't show error on terminal because the no-block flag is set meaning there might not always be data
+                break;  // exit for loop
+            }
+
+            frames[i] = frame;
+        }
+
+        // write the message to the queue
+        const std::lock_guard<std::mutex> lock(queueMutex);
+        for(int i=0; i<messagesToRead; i++) {
+            frameQueue.push_back(frames[i]);
+        }
+
+
+        // lock gets released because it goes out of scope here
+    }
 }
 
 
@@ -53,15 +94,14 @@ int CANConnection::writeFrame(uint32_t canId, uint8_t data[], int nBytes) {
     if(!connOpen) return -1;  // make sure connection is opened properly
     if(nBytes < 0 || nBytes > PACKET_LENGTH) return -2;  // only accept valid packet sizes
 
-    const std::lock_guard<std::mutex> lock(conn_mutex);
-
     struct can_frame frame;
     frame.can_id = canId;
-    frame.can_dlc = PACKET_LENGTH;
-    for(int i = 0; i < PACKET_LENGTH; i++) {  // copy data to frame
+    frame.can_dlc = nBytes;
+    for(int i = 0; i < nBytes; i++) {  // copy data to frame
         frame.data[i] = data[i];
     }
 
+    const std::lock_guard<std::mutex> lock(connMutex);  // grab the mutex and send the data on its way
     if (write(sockfd, &frame, sizeof(struct can_frame)) != sizeof(struct can_frame)) {
        perror("Failed to write");
        return -2;
@@ -72,21 +112,25 @@ int CANConnection::writeFrame(uint32_t canId, uint8_t data[], int nBytes) {
 
 
 // Reads a can frame and stores the data in the supplied parameters
-int CANConnection::readFrame(uint32_t *canId, uint8_t data[PACKET_LENGTH]) {
+int CANConnection::readNextFrame(uint32_t *canId, uint8_t data[PACKET_LENGTH]) {
     if(!connOpen) return -1;  // make sure connection is opened properly
+    if(frameQueue.empty()) return -2;  // no data
 
-    int nbytes;
-    struct can_frame frame;
-    nbytes = read(sockfd, &frame, sizeof(struct can_frame));
-    if (nbytes < 0) {  // don't show error on terminal because the no-block flag is set meaning there might not always be data
-       return -2;
+
+    struct can_frame frame;  // get the first element and remove it
+    try {
+        const std::lock_guard<std::mutex> lock(queueMutex);
+        frame = frameQueue.front();
+        frameQueue.pop_front();
+    } catch(...) {
+        perror("Reading from Message Queue Failed");  // exception caught, log it and return
+        return -3;  
     }
 
-    // copy over frame data
-    *canId = frame.can_id;
+    *canId = frame.can_id;                        // copy over frame data
     for(int i = 0; i < PACKET_LENGTH; i++) {
         data[i] = frame.data[i];
     }
 
-    return 0;
+    return 0;  // success
 }
