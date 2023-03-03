@@ -10,6 +10,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+//#include <iostream>
 
 #include "CAN/CANConnection.hpp"
 
@@ -82,6 +83,7 @@ int CANConnection::openConnection(const char* interface_name) {
 
     struct ifreq ifr;
     strcpy(ifr.ifr_name, interface_name);
+
     if(ioctl(sockfd, SIOCGIFINDEX, &ifr) < 0) {
         perror("ioctl failed");
         return -1;

@@ -11,30 +11,37 @@ CANNetwork::CANNetwork(CANConnection& newConn) {
 
 
 void CANNetwork::_mainloop() {
+    // information for sending the heartbeat
+    can_id_params params = {2, 5, 11, 2, 0};
+    uint32_t id = genCanFrameID(&params);
+    uint8_t heartbeatBytes[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+    int lastHeartbeat = 0;  // set to 0 so that heartbeat is run immediately
+
     while(true) {
-        std::this_thread::sleep_for(std::chrono::microseconds(10000)); // sleep for 10ms
+        // write the heartbeat every 4 periods so that too much traffic isn't generated
+        if(lastHeartbeat % 5 == 0) {
+            conn->writeFrame(id, heartbeatBytes, 8);
+        }
+        lastHeartbeat++;
 
-        // write the heartbeat
-        can_id_params params = {2, 5, 11, 2, 0};
-        uint32_t id = genCanFrameID(&params);
-        uint8_t heartbeatBytes[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-        conn->writeFrame(id, heartbeatBytes, 8);
+        if(runThread) {  // make sure we should be reading. heartbeat will still be sent
+            uint32_t canId;
+            uint8_t data[PACKET_LENGTH];
+            while(conn->readNextFrame(&canId, data) == 0) {  // empty queue
+                int deviceId = decodeCanFrameDevice(canId);
 
-        if(!runThread) continue;  // make sure we should be reading
-
-        uint32_t canId;
-        uint8_t data[PACKET_LENGTH];
-        if(conn->readNextFrame(&canId, data) == 0) {
-            int deviceId = decodeCanFrameDevice(canId);
-
-            const std::lock_guard<std::mutex> lock(deviceMutex);  // take access of the mutex to iterate over devices
-            for(CANDevice* c : devices) {
-                if(c->getDeviceId() == deviceId) {
-                    c->_parseIncomingFrame(canId, data);
-                    break;
+                const std::lock_guard<std::mutex> lock(deviceMutex);  // take access of the mutex to iterate over devices
+                for(CANDevice* c : devices) {
+                    if(c->getDeviceId() == deviceId) {
+                        c->_parseIncomingFrame(canId, data);
+                        break;
+                    }
                 }
             }
         }
+
+        std::this_thread::sleep_for(std::chrono::microseconds(10000)); // sleep for 10ms
     }
 }
 
