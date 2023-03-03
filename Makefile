@@ -7,7 +7,7 @@ OBJ_DIR := $(BASEDIR)/out
 EXE := $(BASEDIR)/main
 
 CXX=g++
-CXXFLAGS=-I$(IDIR) -pthread
+CXXFLAGS=-I$(IDIR) -pthread -g
 
 LIBS=-lm
 LDFLAGS :=

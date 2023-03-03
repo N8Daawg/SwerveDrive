@@ -26,15 +26,15 @@ uint32_t SparkMaxMC::getCanFrameId(int apiClass, int apiIndex) {
 
 // Takes an incoming CAN Frame and responds accordingly.
 void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LENGTH]) {
-    can_id_params *params;
-    decodeCanFrameID(canFrameId, params);
+    can_id_params params;
+    decodeCanFrameID(canFrameId, &params);
 
     printf("Decoding of message %x:\n", canFrameId);
-    printf("    Device Type:   %d\n", params->deviceType);
-    printf("    Manufacturer:  %d\n", params->manufacturer);
-    printf("    API Class:     %d\n", params->apiClass);
-    printf("    API Index:     %d\n", params->apiIndex);
-    printf("    Device Number: %d\n", params->deviceNumber);
+    printf("    Device Type:   %d\n", params.deviceType);
+    printf("    Manufacturer:  %d\n", params.manufacturer);
+    printf("    API Class:     %d\n", params.apiClass);
+    printf("    API Index:     %d\n", params.apiIndex);
+    printf("    Device Number: %d\n", params.deviceNumber);
     printf("    ");
     for(int i = 0; i < PACKET_LENGTH; i++) {
         printf("%d ", data[i]);

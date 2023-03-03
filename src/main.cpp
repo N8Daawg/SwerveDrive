@@ -6,7 +6,7 @@ int main() {
     CANConnection canConnection("can0");
     CANNetwork canNetwork(canConnection);
 
-    SparkMaxMC motor1(canConnection, 1);
+    SparkMaxMC motor1(canConnection, 0);
 
     canNetwork.addDevice(motor1);
 

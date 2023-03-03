@@ -43,7 +43,8 @@ void CANConnection::_readThread() {
         if(!connOpen) continue;       // make sure connection is opened properly
 
         struct can_frame frames[messagesToRead];  // attempt to read data
-        for(int i=0; i<messagesToRead; i++) {
+        int messagesRead = 0;
+        while(messagesRead < messagesToRead) {
             int nbytes;
             struct can_frame frame;
             nbytes = read(sockfd, &frame, sizeof(struct can_frame));
@@ -51,12 +52,13 @@ void CANConnection::_readThread() {
                 break;  // exit for loop
             }
 
-            frames[i] = frame;
+            frames[messagesRead] = frame;
+            messagesRead++;
         }
 
         // write the message to the queue
         const std::lock_guard<std::mutex> lock(queueMutex);
-        for(int i=0; i<messagesToRead; i++) {
+        for(int i=0; i<messagesRead; i++) {
             frameQueue.push_back(frames[i]);
         }
 
@@ -80,7 +82,19 @@ int CANConnection::openConnection(const char* interface_name) {
 
     struct ifreq ifr;
     strcpy(ifr.ifr_name, interface_name);
-    ioctl(sockfd, SIOCGIFINDEX, &ifr);
+    if(ioctl(sockfd, SIOCGIFINDEX, &ifr) < 0) {
+        perror("ioctl failed");
+        return -1;
+    }
+
+    struct sockaddr_can addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.can_family = AF_CAN;
+    addr.can_ifindex = ifr.ifr_ifindex;
+    if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        perror("Bind failed");
+        return -1;
+    }
 
     connOpen = true;
 
@@ -100,11 +114,14 @@ int CANConnection::writeFrame(uint32_t canId, uint8_t data[], int nBytes) {
     for(int i = 0; i < nBytes; i++) {  // copy data to frame
         frame.data[i] = data[i];
     }
+    for(int i = nBytes; i < PACKET_LENGTH; i++) {  // fill rest of frame with 0s
+        frame.data[i] = 0;
+    }
 
     const std::lock_guard<std::mutex> lock(connMutex);  // grab the mutex and send the data on its way
     if (write(sockfd, &frame, sizeof(struct can_frame)) != sizeof(struct can_frame)) {
-       perror("Failed to write");
-       return -2;
+        perror("Failed to write");
+        return -2;
     }
 
     return 0;

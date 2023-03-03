@@ -14,6 +14,12 @@ void CANNetwork::_mainloop() {
     while(true) {
         std::this_thread::sleep_for(std::chrono::microseconds(10000)); // sleep for 10ms
 
+        // write the heartbeat
+        can_id_params params = {2, 5, 11, 2, 0};
+        uint32_t id = genCanFrameID(&params);
+        uint8_t heartbeatBytes[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+        conn->writeFrame(id, heartbeatBytes, 8);
+
         if(!runThread) continue;  // make sure we should be reading
 
         uint32_t canId;
