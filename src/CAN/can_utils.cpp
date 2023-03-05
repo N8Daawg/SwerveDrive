@@ -74,14 +74,6 @@ void floatToBytes(float n, uint8_t bytes[], uint8_t numBytes) {
 // given an array of bytes with the msb at index numBytes - 1 and lsb and index
 // 0, creates and returns a 64 bit integer
 int64_t bytesTouint64(uint8_t bytes[], uint8_t numBytes) {
-    // uint64_t intN = 0;
-    // for(int i = 0; i < numBytes - 1; i++) {
-    //     intN |= bytes[i];
-    //     intN <<= 8;
-    // }
-    // intN |= bytes[numBytes];
-
-    // return intN;  // cast int memory to reinterpret data as a float
     uint64_t intN = 0;
     for(int i = 0; i < numBytes; i++) {
         intN |= bytes[i] << (8 * i);

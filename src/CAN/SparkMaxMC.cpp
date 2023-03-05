@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 
 #include "CAN/can_utils.hpp"
@@ -64,7 +65,7 @@ void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LE
             case 2: { // periodic status 2 - motor position
                 uint8_t positionBytes[4] = {data[0], data[1], data[2], data[3]};
                 float position = bytesToFloat(positionBytes, 4);
-                std::cout << "Motor " << unsigned(deviceId) << " position: " << position << "\n";
+                //std::cout << "Motor " << unsigned(deviceId) << " position: " << position << "\n";
                 break;
             }
 
@@ -163,6 +164,47 @@ int SparkMaxMC::smartPositionSet(float targetRotations) {
     floatToBytes(targetRotations, bytes, 4);
 
     return conn->writeFrame(canId, bytes, 4);
+}
+
+
+// (Parameter Access) writes the frame that updates a parameter on the spark max
+int SparkMaxMC::setGenericParameter(E_SPARKMAX_PARAM param, uint8_t packet[PACKET_LENGTH]) {
+    if(conn == NULL) return -1;
+
+    uint32_t canId = getCanFrameId(48, 0);   // api class and api index
+    canId |= (param << DEVICE_NUMBER_BITS);  // from docs, api section of id is or'd with the desired parameter
+
+    return conn->writeFrame(canId, packet, 5);
+}
+
+
+// (Parameter Access) sends a frame to request the data and then polls the connection
+// response queue until found or timeout is hit
+int SparkMaxMC::readGenericParameter(E_SPARKMAX_PARAM param, uint8_t response[PACKET_LENGTH], int timeout_ms /*100*/) {
+    if(conn == NULL) return -1;
+
+    uint32_t canId = getCanFrameId(48, 0);   // api class and api index
+    canId |= (param << DEVICE_NUMBER_BITS);  // from docs, api section of id is or'd with the desired parameter
+
+    uint8_t bytes[0];
+    conn->writeFrame(canId, bytes, 0);  // send 0 length message to view the parameter
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point end = begin;
+
+    uint32_t bitmask = 0xFFFFFFFF;            // response can id should be the same so search for 
+    uint32_t specifier = canId & bitmask;     // only that
+    uint32_t responseId = 0;
+
+    int dataRead = conn->readNextFrameIf(bitmask, specifier, &responseId, response);
+    while(std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() < timeout_ms && dataRead != 0) {
+        std::this_thread::sleep_for(std::chrono::microseconds(400)); // wait for a bit before re-trying
+        dataRead = conn->readNextFrameIf(bitmask, specifier, &responseId, response);
+
+        end = std::chrono::steady_clock::now();
+    }
+
+    return dataRead;
 }
 
 

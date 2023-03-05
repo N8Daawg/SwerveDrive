@@ -1,7 +1,9 @@
 #include "CAN/CANNetwork.hpp"
 #include "CAN/CANConnection.hpp"
 #include "CAN/SparkMaxMC.hpp"
+#include "CAN/can_utils.hpp"
 
+#include <chrono>
 #include <iostream>
 
 int main() {
@@ -12,9 +14,25 @@ int main() {
     SparkMaxMC motor2(canConnection, 2);
 
     canNetwork.addDevice(motor2);
-    motor2.tareEncoder();
-    motor1.tareEncoder();
-    //canNetwork.addDevice(motor2);
+    canNetwork.addDevice(motor1);
+
+    // test setting kP for slot 0
+    uint8_t kP_data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    floatToBytes(1, kP_data, 4);
+    kP_data[4] = sparkmax_float32;
+    motor1.setGenericParameter(kP_0, kP_data);
+
+    uint8_t data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    if(motor1.readGenericParameter(kP_0, data, 100) == 0) {
+        std::cout << "**************DATA FOUND*******************" << "\n";
+        for(int i = 0; i < 8; i++) {
+            std::cout << (unsigned)data[i] << " ";
+        }
+        std::cout << "\n";
+    } else {
+        std::cout << "**************DATA NOT FOUND*******************" << "\n";
+    }
+
 
     //motor1.dutyCycleSet(0.2);
     //std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep for 5 seconds before identifying again

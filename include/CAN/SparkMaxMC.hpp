@@ -12,6 +12,165 @@
 #include "CANDevice.hpp"
 
 
+// each parameter has a type associated with it that corresponds to an
+// integer value, these are not documented anywhere else and were 
+// found from trial and error. These are needed because to update 
+// parameters, one of the bytes needs to be the type.
+enum E_SPARKMAX_PARAM_TYPE {
+    sparkmax_uint = 1,
+    sparkmax_float32,
+    sparkmax_bool
+};
+
+// the valid parameters on the sparkmax that can be viewed and
+// changed. These are available in more detail on Rev Robotics
+// website: https://docs.revrobotics.com/sparkmax/software-resources/configuration-parameters
+enum E_SPARKMAX_PARAM {
+    kCanID = 0,
+    kInputMode,
+    kMotorType,
+    kCommAdvance,
+    kSensorType,
+    kCtrlType,
+    kIdleMode,
+    kInputDeadband,
+    kFeedbackSensorPID0,
+    kFeedbackSensorPID1,
+    kPolePairs,
+    kCurrentChop,
+    kCurrentChopCycles,
+    kP_0,
+    kI_0,
+    kD_0,
+    kF_0,
+    kIZone_0,
+    kDFilter_0,
+    kOutputMin_0,
+    kOutputMax_0,
+    kP_1,
+    kI_1,
+    kD_1,
+    kF_1,
+    kIZone_1,
+    kDFilter_1,
+    kOutputMin_1,
+    kOutputMax_1,
+    kP_2,
+    kI_2,
+    kD_2,
+    kF_2,
+    kIZone_2,
+    kDFilter_2,
+    kOutputMin_2,
+    kOutputMax_2,
+    kP_3,
+    kI_3,
+    kD_3,
+    kF_3,
+    kIZone_3,
+    kDFilter_3,
+    kOutputMin_3,
+    kOutputMax_3,
+    kInverted,
+    kOutputRatio,
+    kSerialNumberLow,
+    kSerialNumberMid,
+    kSerialNumberHigh,
+    kLimitSwitchFwdPolarity,
+    kLimitSwitchRevPolarity,
+    kHardLimitFwdEn,
+    kHardLimitRevEn,
+    kSoftLimitFwdEn,
+    kSoftLimitRevEn,
+    kRampRate,
+    kFollowerID,
+    kFollowerConfig,
+    kSmartCurrentStallLimit,
+    kSmartCurrentFreeLimit,
+    kSmartCurrentConfig,
+    kSmartCurrentReserved,
+    kMotorKv,
+    kMotorR,
+    kMotorL,
+    kMotorRsvd1,
+    kMotorRsvd2,
+    kMotorRsvd3,
+    kEncoderCountsPerRev,
+    kEncoderAverageDepth,
+    kEncoderSampleDelta,
+    kEncoderInverted,
+    kEncoderRsvd1,
+    kClosedLoopVoltageMode,
+    kCompensatedNominalVoltage,
+    kSmartMotionMaxVelocity_0,
+    kSmartMotionMaxAccel_0,
+    kSmartMotionMinVelOutput_0,
+    kSmartMotionAllowedClosedLoopError_0,
+    kSmartMotionAccelStrategy_0,
+    kSmartMotionMaxVelocity_1,
+    kSmartMotionMaxAccel_1,
+    kSmartMotionMinVelOutput_1,
+    kSmartMotionAllowedClosedLoopError_1,
+    kSmartMotionAccelStrategy_1,
+    kSmartMotionMaxVelocity_2,
+    kSmartMotionMaxAccel_2,
+    kSmartMotionMinVelOutput_2,
+    kSmartMotionAllowedClosedLoopError_2,
+    kSmartMotionAccelStrategy_2,
+    kSmartMotionMaxVelocity_3,
+    kSmartMotionMaxAccel_3,
+    kSmartMotionMinVelOutput_3,
+    kSmartMotionAllowedClosedLoopError_3,
+    kSmartMotionAccelStrategy_3,
+    kIMaxAccum_0,
+    kSlot3Placeholder1_0,
+    kSlot3Placeholder2_0,
+    kSlot3Placeholder3_0,
+    kIMaxAccum_1,
+    kSlot3Placeholder1_1,
+    kSlot3Placeholder2_1,
+    kSlot3Placeholder3_1,
+    kIMaxAccum_2,
+    kSlot3Placeholder1_2,
+    kSlot3Placeholder2_2,
+    kSlot3Placeholder3_2,
+    kIMaxAccum_3,
+    kSlot3Placeholder1_3,
+    kSlot3Placeholder2_3,
+    kSlot3Placeholder3_3,
+    kPositionConversionFactor,
+    kVelocityConversionFactor,
+    kClosedLoopRampRate,
+    kSoftLimitFwd,
+    kSoftLimitRev,
+    kSoftLimitRsvd0,
+    kSoftLimitRsvd1,
+    kAnalogPositionConversion,
+    kAnalogVelocityConversion,
+    kAnalogAverageDepth,
+    kAnalogSensorMode,
+    kAnalogInverted,
+    kAnalogSampleDelta,
+    kAnalogRsvd0,
+    kAnalogRsvd1,
+    kDataPortConfig,
+    kAltEncoderCountsPerRev,
+    kAltEncoderAverageDepth,
+    kAltEncoderSampleDelta,
+    kAltEncoderInverted,
+    kAltEncoderPositionFactor,
+    kAltEncoderVelocityFactor,
+    kAltEncoderRsvd0,
+    kAltEncoderRsvd1,
+    kExtFFGain0,
+    kExtFFGain1,
+    kExtFFGain2,
+    kExtFFGain3,
+    kExtFFReserved0,
+    kExtFFReserved1
+};
+
+
 class SparkMaxMC : public CANDevice {
     private:
         // method for generating the can frame ID for a spark max
@@ -129,6 +288,34 @@ class SparkMaxMC : public CANDevice {
         //    int - if the command was sent successfully  
         int smartPositionSet(float targetRotations);
 
+
+        // (Parameter Access) Sets a generic parameter on the sparkmax. Must supply a the
+        // correct packet structure
+        // 
+        // Params:
+        //    param  - the parameter to write, of enumerated type
+        //    packet - what to send to the sparkmax. Up to the caller
+        //             to determine how this should be interpreted (read the docs)
+        // Return:
+        //    int - if the command was sent successfully
+        int setGenericParameter(E_SPARKMAX_PARAM param, uint8_t packet[PACKET_LENGTH]);
+
+
+        // (Parameter Access) reads a parameter from the sparkmax and places the output value into 
+        // the array. Returns 0 if found a response within the maximum allowed
+        // time. This function has an optional timeout because this operation
+        // could spend a lot of time holding a mutex somewhere if it doesn't get a 
+        // response immediately. 
+        //
+        // Params:
+        //    param      - the parameter to read of enumerated type
+        //    response   - where to place the response if any. Up to the caller
+        //                 to determine how this should be interpreted (read the docs)
+        //    timeout_ms - (optional) max time to spend in this function
+        // Return:
+        //    int  - 0 if response was received
+        int readGenericParameter(E_SPARKMAX_PARAM param, uint8_t response[PACKET_LENGTH], int timeout_ms=100);
+        
 
         // (Telemetry Update Mechanical Position Enoder Port) Zeros
         // the encoder value by updating the position held by the 

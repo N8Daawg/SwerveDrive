@@ -89,11 +89,26 @@ class CANConnection {
         // queue. Returns 0 if data was read
         //
         // Params:
-        //    *canId - a pointer to a 32 bit integer where the can id will be placed
+        //    *canId - a pointer to a 32 bit integer where the can frame id will be placed
         //    data   - an array of bytes for the data to be placed if a frame is read
         // Return:
         //    int - 0 if successful, -1 if connection not open, -2 if no data, -3 unknown error
         int readNextFrame(uint32_t *canId, uint8_t data[PACKET_LENGTH]);
+
+
+        // Looks through the message queue looking for a specific can id format. Each
+        // canId will be masked and checked to be equal to the specifier. If this
+        // check returns true, this frame will be placed in the other parameters
+        //
+        // Params:
+        //    bitmask   - the bitmask to use on the can frame to check for what it contains efficiently
+        //    specifier - what the canId needs to look like after it has been masked
+        // Params:
+        //    *canId - a pointer to a 32 bit integer where the can frame id will be placed
+        //    data   - an array of bytes for the data to be placed if a frame is read
+        // Return:
+        //    int - 0 if successful, -1 if connection not open, -2 if no data, -3 unknown error
+        int readNextFrameIf(uint32_t bitmask, uint32_t specifier, uint32_t *canId, uint8_t data[PACKET_LENGTH]);
 
 
         // Stops the read thread by clearing the flag

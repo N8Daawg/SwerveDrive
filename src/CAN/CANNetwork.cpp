@@ -16,6 +16,9 @@ void CANNetwork::_mainloop() {
     uint32_t id = genCanFrameID(&params);
     uint8_t heartbeatBytes[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
+    uint32_t periodicBitmask = 0x3F << (DEVICE_NUMBER_BITS + API_INDEX_BITS);  // want to look at the 6 bits of the class number
+    uint32_t periodicSpecifier = 6 << (DEVICE_NUMBER_BITS + API_INDEX_BITS);   // want class number of 6
+
     int lastHeartbeat = 0;  // set to 0 so that heartbeat is run immediately
 
     while(true) {
@@ -28,7 +31,7 @@ void CANNetwork::_mainloop() {
         if(runThread) {  // make sure we should be reading. heartbeat will still be sent
             uint32_t canId;
             uint8_t data[PACKET_LENGTH];
-            while(conn->readNextFrame(&canId, data) == 0) {  // empty queue
+            while(conn->readNextFrameIf(periodicBitmask, periodicSpecifier, &canId, data) == 0) {  // empty queue
                 int deviceId = decodeCanFrameDevice(canId);
 
                 const std::lock_guard<std::mutex> lock(deviceMutex);  // take access of the mutex to iterate over devices

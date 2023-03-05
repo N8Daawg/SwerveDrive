@@ -143,7 +143,7 @@ int CANConnection::readNextFrame(uint32_t *canId, uint8_t data[PACKET_LENGTH]) {
         frameQueue.pop_front();
     } catch(...) {
         perror("Reading from Message Queue Failed");  // exception caught, log it and return
-        return -3;  
+        return -3;
     }
 
     *canId = frame.can_id;                        // copy over frame data
@@ -152,4 +152,44 @@ int CANConnection::readNextFrame(uint32_t *canId, uint8_t data[PACKET_LENGTH]) {
     }
 
     return 0;  // success
+}
+
+
+int CANConnection::readNextFrameIf(uint32_t bitmask, uint32_t specifier, uint32_t *canId, uint8_t data[PACKET_LENGTH]) {
+    if(!connOpen) return -1;  // make sure connection is opened properly
+    if(frameQueue.empty()) return -2;  // no data
+
+
+    struct can_frame frame;  // get the first element and remove it
+    try {
+        const std::lock_guard<std::mutex> lock(queueMutex);
+
+        std::list<struct can_frame>::iterator it = frameQueue.begin();
+
+        
+        while(it != frameQueue.end()) {
+            uint32_t maskedId = it->can_id & bitmask;
+            if(maskedId == specifier) {
+                *canId = it->can_id;                        // copy over frame data
+                for(int i = 0; i < PACKET_LENGTH; i++) {
+                    data[i] = it->data[i];
+                }
+                frameQueue.erase(it);
+
+                return 0;  // exit immediately, nothing else to do
+            }
+
+            it++;  // move to next element
+        }
+
+        
+    } catch(...) {
+        perror("Reading from Message Queue Failed");  // exception caught, log it and return
+        return -3;
+    }
+
+
+    return -2;  // nothing found, would have returned earlier if something was found
+
+
 }

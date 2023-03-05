@@ -64,12 +64,12 @@ int decodeCanFrameDevice(uint32_t msg);
 
 
 // populates an array of bytes from an unsigned integer
-// with the msb at index 0 and the lsb at index numBytes - 1
+// with the msb at index numBytes - 1 and the lsb at index 0
 //
 // Params:
 //    n        - the number to split into bytes
 //    bytes    - the array where the bytes will be stored with the msb at 
-//               index 0 and the lsb at index numBytes - 1
+//               index numBytes - 1 and the lsb at index 0
 //    numBytes - the number of bytes to split the integer into (usually 8)
 // Return:
 //    None
@@ -77,35 +77,35 @@ void uint64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes);
 
 
 // populates an array of bytes from a floating point number
-// with the msb at index 0 and the lsb at index numBytes - 1
+// with the msb at index numBytes - 1 and the lsb at index 0
 //
 // Params:
 //    n        - the number to split into bytes
 //    bytes    - the array where the bytes will be stored with the msb at 
-//               index 0 and the lsb at index numBytes - 1
+//               index numBytes - 1 and the lsb at index 0
 //    numBytes - the number of bytes to split the integer into (usually 8)
 // Return:
 //    None
 void floatToBytes(float n, uint8_t bytes[], uint8_t numBytes);
 
 
-// given an array of bytes with the msb at index 0 and lsb and index
-// numBytes - 1, creates and returns an unsigned 64 bit integer
+// given an array of bytes with the msb at index numBytes - 1 and lsb and index
+// 0, creates and returns an unsigned 64 bit integer
 //
 // Params:
 //    bytes    - an array of bytes to decode, must be same size as numBytes
-//    numBytes - the number of bytes to decode (usually 8)
+//    numBytes - the number of bytes to decode 
 // Return:
 //    int64_t - the decoded 64 bit integer
 int64_t bytesTouint64(uint8_t bytes[], uint8_t numBytes);
 
 
-// given an array of bytes with the msb at index 0 and lsb and index
-// numBytes - 1, creates and returns floating point number
+// given an array of bytes with the msb at index numBytes - 1 and lsb at
+// index 0, creates and returns floating point number
 //
 // Params:
 //    bytes    - an array of bytes to decode, must be same size as numBytes
-//    numBytes - the number of bytes to decode (usually 8)
+//    numBytes - the number of bytes to decode
 // Return:
 //    float - the decoded floating point number
 float bytesToFloat(uint8_t bytes[], uint8_t numBytes);
