@@ -50,10 +50,10 @@ int decodeCanFrameDevice(uint32_t msg) {
 }
 
 
-// populates an array of bytes from an integer with the msb at index 0
-// and the lsb at index numBytes - 1
-void int64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes) {
-    for(int i = numBytes  - 1; i >= 0; i--) {
+// populates an array of bytes from an integer with the msb at index numBytes - 1
+// and the lsb at index 0
+void uint64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes) {
+    for(int i = 0; i < numBytes; i++) {
         uint8_t byte = n & 0xFF;
         bytes[i] = byte;
         n >>= 8;
@@ -62,22 +62,29 @@ void int64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes) {
 
 
 // populates an array of bytes from a floating point number
-// with the msb at index 0 and the lsb at index numBytes - 1
+// with the msb at index numBytes - 1 and the lsb at index 0
 void floatToBytes(float n, uint8_t bytes[], uint8_t numBytes) {
     uint64_t intN = *(int*)&n;         // convert the float to an integer but keeping bits the same by casting
                                        // this is necessary to use bit shifting operations to convert this to 
                                        // bytes
-    int64ToBytes(intN, bytes, numBytes);
+    uint64ToBytes(intN, bytes, numBytes);
 }
 
 
-// given an array of bytes with the msb at index 0 and lsb and index
-// numBytes - 1, creates and returns a 64 bit integer
-int64_t bytesToint64(uint8_t bytes[], uint8_t numBytes) {
+// given an array of bytes with the msb at index numBytes - 1 and lsb and index
+// 0, creates and returns a 64 bit integer
+int64_t bytesTouint64(uint8_t bytes[], uint8_t numBytes) {
+    // uint64_t intN = 0;
+    // for(int i = 0; i < numBytes - 1; i++) {
+    //     intN |= bytes[i];
+    //     intN <<= 8;
+    // }
+    // intN |= bytes[numBytes];
+
+    // return intN;  // cast int memory to reinterpret data as a float
     uint64_t intN = 0;
-    for(int i = 0; i < numBytes - 1; i++) {
-        intN |= bytes[i];
-        intN <<= 8;
+    for(int i = 0; i < numBytes; i++) {
+        intN |= bytes[i] << (8 * i);
     }
     intN |= bytes[numBytes];
 
@@ -88,7 +95,7 @@ int64_t bytesToint64(uint8_t bytes[], uint8_t numBytes) {
 // given an array of bytes with the msb at index 0 and lsb and index
 // numBytes - 1, creates and returns floating point number
 float bytesToFloat(uint8_t bytes[], uint8_t numBytes) {
-    uint64_t intN = bytesToint64(bytes, numBytes);
+    uint64_t intN = bytesTouint64(bytes, numBytes);
 
     return *(float*)&intN;  // cast int memory to reinterpret data as a float
 }

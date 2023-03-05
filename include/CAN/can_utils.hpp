@@ -63,7 +63,7 @@ void decodeCanFrameID(uint32_t msg, can_id_params* msg_params);
 int decodeCanFrameDevice(uint32_t msg);
 
 
-// populates an array of bytes from an integer
+// populates an array of bytes from an unsigned integer
 // with the msb at index 0 and the lsb at index numBytes - 1
 //
 // Params:
@@ -73,7 +73,7 @@ int decodeCanFrameDevice(uint32_t msg);
 //    numBytes - the number of bytes to split the integer into (usually 8)
 // Return:
 //    None
-void int64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes);
+void uint64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes);
 
 
 // populates an array of bytes from a floating point number
@@ -90,14 +90,14 @@ void floatToBytes(float n, uint8_t bytes[], uint8_t numBytes);
 
 
 // given an array of bytes with the msb at index 0 and lsb and index
-// numBytes - 1, creates and returns a 64 bit integer
+// numBytes - 1, creates and returns an unsigned 64 bit integer
 //
 // Params:
 //    bytes    - an array of bytes to decode, must be same size as numBytes
 //    numBytes - the number of bytes to decode (usually 8)
 // Return:
 //    int64_t - the decoded 64 bit integer
-int64_t bytesToint64(uint8_t bytes[], uint8_t numBytes);
+int64_t bytesTouint64(uint8_t bytes[], uint8_t numBytes);
 
 
 // given an array of bytes with the msb at index 0 and lsb and index

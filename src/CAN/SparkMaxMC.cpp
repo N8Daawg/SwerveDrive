@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "CAN/can_utils.hpp"
 #include "CAN/SparkMaxMC.hpp"
 
@@ -24,8 +26,7 @@ uint32_t SparkMaxMC::getCanFrameId(int apiClass, int apiIndex) {
 }
 
 
-// Takes an incoming CAN Frame and responds accordingly.
-void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LENGTH]) {
+void SparkMaxMC::debugIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LENGTH]) {
     can_id_params params;
     decodeCanFrameID(canFrameId, &params);
 
@@ -40,6 +41,58 @@ void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LE
         printf("%d ", data[i]);
     }
     printf("\n");
+}
+
+// Takes an incoming CAN Frame and responds accordingly.
+void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LENGTH]) {
+    can_id_params params;
+    decodeCanFrameID(canFrameId, &params);
+
+    if(params.apiClass == 6) {  // 6 corresponds to periodic data being sent back
+        switch(params.apiIndex) {
+            case 0: { // periodic status 0 - applied output, faults, sticky faults, is follower
+                break;
+            }
+
+            case 1: {// periodic status 1 - velocity, temperature, voltage, current
+                uint8_t velocityBytes[4] = {data[0], data[1], data[2], data[3]};
+                float velocity = bytesToFloat(velocityBytes, 4);
+                // std::cout << "Motor " << unsigned(deviceId) << " velocity: " << velocity << "\n";
+                break;
+            }
+
+            case 2: { // periodic status 2 - motor position
+                uint8_t positionBytes[4] = {data[0], data[1], data[2], data[3]};
+                float position = bytesToFloat(positionBytes, 4);
+                std::cout << "Motor " << unsigned(deviceId) << " position: " << position << "\n";
+                break;
+            }
+
+            case 3: { // periodic status 3 - analog sensor voltage, velocity, position
+                break;
+            }
+
+            case 4: { // periodic status 4 - alternate encoder velocity, position
+                break;
+            }
+
+
+
+        }
+    }
+}
+
+
+// (Duty Cycle Set) sets the target duty cycle
+int SparkMaxMC::dutyCycleSet(float percent) {
+    if(conn == NULL) return -1;
+
+    uint32_t canId = getCanFrameId(0, 2);  // api class and api index
+
+    uint8_t bytes[4];  // takes a 4 byte floating point number
+    floatToBytes(percent, bytes, 4);
+
+    return conn->writeFrame(canId, bytes, 4);
 }
 
 
@@ -108,6 +161,21 @@ int SparkMaxMC::smartPositionSet(float targetRotations) {
 
     uint8_t bytes[4];  // takes a 4 byte floating point number
     floatToBytes(targetRotations, bytes, 4);
+
+    return conn->writeFrame(canId, bytes, 4);
+}
+
+
+// (Telemetry Update Mechanical Position Enoder Port) Uses
+// api command to update the position, but only for setting
+// the position to 0  
+int SparkMaxMC::tareEncoder() {
+    if(conn == NULL) return -1;
+
+    uint32_t canId = getCanFrameId(10, 0);  // api class and api index
+
+    uint8_t bytes[4];  // 4 byte floating point number for 0
+    floatToBytes(99999, bytes, 4);
 
     return conn->writeFrame(canId, bytes, 4);
 }
