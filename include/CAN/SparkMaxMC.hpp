@@ -171,6 +171,21 @@ enum E_SPARKMAX_PARAM {
 };
 
 
+// data for the pid constants used by the sparkmax
+// motor controller. See documentation for what 
+// each of these values mean
+typedef struct {
+    float kP;
+    float kI;
+    float kD;
+    float kF;
+    float kIZone;
+    float kDFilter;
+    float kOutputMin;
+    float kOutputMax;
+} pidf_constants;
+
+
 class SparkMaxMC : public CANDevice {
     private:
         // method for generating the can frame ID for a spark max
@@ -316,6 +331,72 @@ class SparkMaxMC : public CANDevice {
         //    int  - 0 if response was received
         int readGenericParameter(E_SPARKMAX_PARAM param, uint8_t response[PACKET_LENGTH], int timeout_ms=100);
         
+
+        // Sets the P constant on the motor controller for a given slot (default 0)
+        //
+        // Params:
+        //    kP   - the new value for kP
+        //    slot - the pid slot (0, 1, 2, 3)
+        // Return:
+        //    int - if the command was sent successfully
+        int setkP(float kP, int slot=0);
+
+
+        // Sets the I constant on the motor controller for a given slot (default 0)
+        //
+        // Params:
+        //    kI   - the new value for kI
+        //    slot - the pid slot (0, 1, 2, 3)
+        // Return:
+        //    int - if the command was sent successfully
+        int setkI(float kI, int slot=0);
+
+
+        // Sets the D constant on the motor controller for a given slot (default 0)
+        //
+        // Params:
+        //    kD   - the new value for kD
+        //    slot - the pid slot (0, 1, 2, 3)
+        // Return:
+        //    int - if the command was sent successfully
+        int setkD(float kD, int slot=0);
+
+
+        // Sets the feed-forward constant on the motor controller for a given slot (default 0)
+        //
+        // Params:
+        //    kF   - the new value for kF
+        //    slot - the pid slot (0, 1, 2, 3)
+        // Return:
+        //    int - if the command was sent successfully
+        int setkF(float kF, int slot=0);
+
+
+        // updates all the PIDF parameters for the motor controller for
+        // the given slot
+        // 
+        // Params:
+        //    kP   - the new proportional constant
+        //    kI   - the new integral constant
+        //    kD   - the new derivative constant
+        //    kF   - the new feed-forward constant
+        //    slot - the pid slot (0, 1, 2, 3)
+        // Return:
+        //    int - if the command was sent successfully   
+        int setPIDF(float kP, float kI, float kD, float kF, int slot=0);
+
+
+        // reads the pid constants used by the motor controller for given
+        // slot. Stores it in a reference struct, returns 0 if all
+        // messages were read successfully
+        //
+        // Params:
+        //    constants - a reference to the structure where the data should be read
+        //    slot      - which pid constants slot to read (default 0)
+        // Return:
+        //    int - if the command was sent successfully          
+        int getFullPIDF(pidf_constants& constants, int slot=0);
+
 
         // (Telemetry Update Mechanical Position Enoder Port) Zeros
         // the encoder value by updating the position held by the 
