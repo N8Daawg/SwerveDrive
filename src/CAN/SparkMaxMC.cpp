@@ -45,6 +45,7 @@ void SparkMaxMC::debugIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LEN
     printf("\n");
 }
 
+
 // Takes an incoming CAN Frame and responds accordingly.
 void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LENGTH]) {
     can_id_params params;
@@ -57,20 +58,21 @@ void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LE
                 uint8_t faultBytes[2] = {data[2], data[3]};
                 uint8_t stickyFaultBytes[2] = {data[4], data[5]};
 
-                uint64_t applied = bytesTouint64(appliedBytes, 2);
-                int16_t appliedOutput = *(int16_t*)&applied;
+                appliedOutput = bytesTouint64(appliedBytes, 2) / 32767.0;  // divide by int16 max to scale to [-1, 1]
+                faults = bytesTouint64(faultBytes, 2);
+                stickyFaults = bytesTouint64(stickyFaultBytes, 2);
+                isFollower = data[7];
 
-                uint64_t faults = bytesTouint64(faultBytes, 2);
-                uint64_t stickyFaults = bytesTouint64(stickyFaultBytes, 2);
-
-                std::cout << appliedOutput << " " << appliedOutput / 32767.0 << " " << faults << " " << stickyFaults << "\n";
                 break;
             }
 
             case 1: {// periodic status 1 - velocity, temperature, voltage, current
                 uint8_t velocityBytes[4] = {data[0], data[1], data[2], data[3]};
-                float velocity = bytesToFloat(velocityBytes, 4);
-                std::cout << "Motor " << unsigned(deviceId) << " velocity: " << velocity << "\n";
+                velocity_rpm = bytesToFloat(velocityBytes, 4);
+                temperature_c = data[4];
+
+                // TODO: read voltage and current
+
                 break;
             }
 
@@ -81,14 +83,15 @@ void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LE
                 break;
             }
 
-            case 3: { // periodic status 3 - analog sensor voltage, velocity, position
-                break;
-            }
-
             case 4: { // periodic status 4 - alternate encoder velocity, position
+                uint8_t velocityBytes[4] = {data[0], data[1], data[2], data[3]};
+                uint8_t positionBytes[4] = {data[4], data[5], data[6], data[7]};
+                altEncoderVelocity_rpm = bytesToFloat(velocityBytes, 4);
+                _altEncoderPosition = bytesToFloat(positionBytes, 4);
                 break;
             }
 
+            // don't read periodic 3, 5, and 6 because we don't use them
 
 
         }
@@ -228,6 +231,53 @@ int SparkMaxMC::readGenericParameter(E_SPARKMAX_PARAM param, uint8_t response[PA
 }
 
 
+// makes parameter update call to set the motor reversed setting
+int SparkMaxMC::setMotorReversed(bool reverse) {
+    if(conn == NULL) return -1;
+
+    uint8_t setReverse = 0;
+    if(reverse) setReverse = 1;
+
+    uint8_t data[5] = {setReverse, 0, 0, 0, sparkmax_bool};
+
+    int response = setGenericParameter(kInverted, data);
+    if(response == 0) {
+        isReversed = setReverse;
+    } 
+
+    return response;
+}
+
+
+// makes parameter update call to set the encoder mode
+int SparkMaxMC::setEncoderMode(bool alternate) {
+    if(conn == NULL) return -1;
+
+    uint8_t useAlt = 0;
+    if(alternate) useAlt = 1;
+
+    uint8_t data[5] = {useAlt, 0, 0, 0, sparkmax_bool};
+
+    int response = setGenericParameter(kDataPortConfig, data);
+    if(response == 0) {
+        encoderMode = useAlt;
+    } 
+
+    return response;
+
+}
+
+
+// makes parameter update call to set idle mode
+int SparkMaxMC::setIdleMode(uint8_t newIdleMode) {
+    if(conn == NULL) return -1;
+
+    uint8_t data[5] = {newIdleMode, 0, 0, 0, sparkmax_bool};
+
+    return setGenericParameter(kIdleMode, data);
+}
+
+
 // makes call to parameter set function
 int SparkMaxMC::setkP(float kP, int slot /*0*/) {
     uint8_t kP_data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -361,6 +411,64 @@ int SparkMaxMC::tareEncoder() {
     floatToBytes(0.0, bytes, 4);
 
     return conn->writeFrame(canId, bytes, 8);
+}
+
+
+
+// (Config Factory Defaults) Makes simple api call to device
+int SparkMaxMC::setToFactoryDefaults() {
+    if(conn == NULL) return -1;
+
+    uint32_t canId = getCanFrameId(7, 4);             // api class and api index
+
+    uint8_t bytes[5] = {0, 0, 0, 0, sparkmax_bool};   // 5 bytes from documentation
+
+    return conn->writeFrame(canId, bytes, 5);
+}
+
+
+// (Config Burn Flash) Makes simple api call to device  
+int SparkMaxMC::burnFlash() {
+    if(conn == NULL) return -1;
+
+    uint32_t canId = getCanFrameId(7, 2);  // api class and api index
+
+    uint8_t bytes[2] = {0xA3, 0x3A};       // 2 bytes from documentation
+
+    return conn->writeFrame(canId, bytes, 2);
+}
+
+
+// (Clear Faults) sends api command to clear faults
+int SparkMaxMC::clearStickyFaults() {
+    if(conn == NULL) return -1;
+
+    uint32_t canId = getCanFrameId(6, 14);  // api class and api index
+
+    return conn->writeFrame(canId, NULL, 0);
+}
+
+
+// prints faults in a human readable format. There are 16 possible
+// faults. These were determined from the REV Hardware client, so 
+// it is possible that they are not accurate (they were not documented
+// anywhere else)
+void SparkMaxMC::printFaults(uint16_t faultString) {
+    const char* faultStrings[16] = {
+        "Brownout", "Over Current", "Watchdog Reset", "Motor Type",
+        "Sensor Fault", "Stall", "EEPROM", "CAN TX",
+        "CAN RX", "Has Reset", "Gate Driver Fault", "Hardware Fault",
+        "Soft Limit Forward", "Soft Limit Reverse", "Hard Limit Forward", "Hard Limit Reverse"
+    };
+    printf("Fault Decoding for %d:\n", faultString);
+    for(int i = 0; i < 16; i++) {
+        int bit = faultString & 1;
+        printf("    %s: %d\n", faultStrings[i], bit);
+
+        faultString >>= 1;  // shift to next bit
+    }
+
+    printf("\n");
 }
 
 

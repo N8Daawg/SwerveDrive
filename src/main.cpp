@@ -16,6 +16,37 @@ int main() {
     //canNetwork.addDevice(motor2);
     canNetwork.addDevice(motor1);
 
+
+    motor1.setPIDF(0.0003, 0.000001, 0, 0, 0);
+    
+    pidf_constants constants;
+    int response = motor1.getFullPIDF(constants, 0);
+    std::cout << constants.kP << "\n";
+    std::cout << constants.kI << "\n";
+    std::cout << constants.kD << "\n";
+    std::cout << constants.kF << "\n";
+    std::cout << constants.kIZone << "\n";
+    std::cout << constants.kDFilter << "\n";
+    std::cout << constants.kOutputMin << "\n";
+    std::cout << constants.kOutputMax << "\n";
+
+
+    motor1.setToFactoryDefaults();
+
+    response = motor1.getFullPIDF(constants, 0);
+    std::cout << constants.kP << "\n";
+    std::cout << constants.kI << "\n";
+    std::cout << constants.kD << "\n";
+    std::cout << constants.kF << "\n";
+    std::cout << constants.kIZone << "\n";
+    std::cout << constants.kDFilter << "\n";
+    std::cout << constants.kOutputMin << "\n";
+    std::cout << constants.kOutputMax << "\n";
+
+    motor1.setPIDF(0.0003, 0.000001, 0, 0, 0);
+
+    motor1.burnFlash();
+
     // // test setting kP for slot 0
     // uint8_t kP_data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     // floatToBytes(1, kP_data, 4);
@@ -33,21 +64,7 @@ int main() {
     //     std::cout << "**************DATA NOT FOUND*******************" << "\n";
     // }
 
-    motor1.setPIDF(0.0003, 0.000001, 0, 0, 0);
-    
-    pidf_constants constants;
-    int response = motor1.getFullPIDF(constants, 0);
-    std::cout << constants.kP << "\n";
-    std::cout << constants.kI << "\n";
-    std::cout << constants.kD << "\n";
-    std::cout << constants.kF << "\n";
-    std::cout << constants.kIZone << "\n";
-    std::cout << constants.kDFilter << "\n";
-    std::cout << constants.kOutputMin << "\n";
-    std::cout << constants.kOutputMax << "\n";
-
     //motor1.velocitySet(4000);
-    motor1.tareEncoder();
 
     //motor1.dutyCycleSet(0);
     // for(int i = 1; i < 10; i++) {
@@ -109,7 +126,6 @@ int main() {
 
     while(1) {
         motor1.identify();
-        motor2.tareEncoder();
         std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep for 5 seconds before identifying again
     }
 
