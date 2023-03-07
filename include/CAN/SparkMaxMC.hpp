@@ -214,16 +214,21 @@ class SparkMaxMC : public CANDevice {
         int faults;
         int stickyFaults;
         bool isFollower;
+        int temperature_c;    // motor temperature in degrees c
 
-        float velocity_rpm;              // motor velocity in rpm - based on encoder mode of motor
-        int temperature_c;               // motor temperature in degrees c
-        float _internalEncoderPosition;  // the position of the built-in encoder (raw value, not scaled)
+        float busVoltage;  // the voltage drop of the motor
+        float busCurrent;  // the current supplied to the motor
 
-        float altEncoderVelocity_rpm;    // the velocity of the alternate encoder
-        float _altEncoderPosition;       // the position of the alternate encoder (raw value, not scaled)
+        float _internalEncoderVelocity_rpm;  // the velocity of the internal encoder in rpm
+        float _internalEncoderPosition;      // the position of the built-in encoder in revolutions (not scaled or offset)
+        float _altEncoderVelocity_rpm;       // the velocity of the alternate encoder in rpm
+        float _altEncoderPosition;           // the position of the alternate encoder in revolutions (not scaled or offset)
 
-        int encoderMode;   // 0 for built-in, 1 for alternate
-        bool isReversed;  
+        int encoderMode;         // 0 for built-in, 1 for alternate
+        bool isReversed;         // if the motor is reversed or not
+        bool encoderIsReversed;  // if the encoder is reversed
+        float encoderOffset;     // used for zeroing the encoder (either for internal or alternate
+                                 // encoder based on which encoder mode is on)
 
 
     public:
@@ -259,6 +264,45 @@ class SparkMaxMC : public CANDevice {
         // Return:
         //    None
         void _parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LENGTH]) override;
+
+
+
+
+        /*****************************************************************************************/
+        /*                                                                                       */
+        /*                              Firmware Functions                                       */
+        /*                                                                                       */
+        /*****************************************************************************************/
+
+        // (Config Factory Defaults) Sets all parameters to factory defaults. This is useful for 
+        // starting the motor controller from a known state. If this method is to work properly,
+        // it should be called before any other motor methods and before any heartbeat is sent
+        //
+        // Params:
+        //    None
+        // Return:
+        //    int - if the command was sent successfully   
+        int setToFactoryDefaults();
+
+
+        // (Config Burn Flash) Burns to flash all the parameters currently set that have been 
+        // changed. This is useful for if the motor controller brown's out that it doesn't 
+        // need to be reconfigured
+        //
+        // Params:
+        //    None
+        // Return:
+        //    int - if the command was sent successfully   
+        int burnFlash();
+
+
+        // (Clear Faults) Clears the sticky faults set by the motor controller.
+        //
+        // Params:
+        //    None
+        // Return:
+        //    int - if the command was sent successfully   
+        int clearStickyFaults();
 
 
 
@@ -332,7 +376,7 @@ class SparkMaxMC : public CANDevice {
 
         /*****************************************************************************************/
         /*                                                                                       */
-        /*                        Parameter Configuration Functions                              */
+        /*                       Parameter Manipulation Functions                                */
         /*                                                                                       */
         /*****************************************************************************************/
 
@@ -362,7 +406,15 @@ class SparkMaxMC : public CANDevice {
         // Return:
         //    int  - 0 if response was received
         int readGenericParameter(E_SPARKMAX_PARAM param, uint8_t response[PACKET_LENGTH], int timeout_ms=100);
-        
+
+
+
+
+        /*****************************************************************************************/
+        /*                                                                                       */
+        /*                             Motor Config Functions                                    */
+        /*                                                                                       */
+        /*****************************************************************************************/
 
         // Sets whether the motor should be reversed or not
         //
@@ -372,6 +424,22 @@ class SparkMaxMC : public CANDevice {
         //    int - if the command was sent successfully
         int setMotorReversed(bool reverse);
 
+
+        // sets the idle mode for the sparkmax to either brake or coast
+        //
+        // Params:
+        //    newIdleMode - 0 for coast, 1 for brake
+        // Return:
+        //    int - if the command was sent successfully        
+        int setIdleMode(uint8_t newIdleMode);
+
+
+
+        /*****************************************************************************************/
+        /*                                                                                       */
+        /*                             Encoder Config Functions                                  */
+        /*                                                                                       */
+        /*****************************************************************************************/
 
         // Sets the encoder mode for the motor controller. The two options are either
         // the built-in encoder or the alternate encoder
@@ -383,14 +451,46 @@ class SparkMaxMC : public CANDevice {
         int setEncoderMode(bool alternate);
 
 
-        // sets the idle mode for the sparkmax to either brake or coast
+        // Sets a scalar to be multiplied by all data coming from the encoder (velocity, position,
+        // etc.) to factor things like gear ratios or unit conversions. This value is strictly
+        // multiplied so a gear reduction should supply a number less than 1. If this value changes,
+        // all PID loops involving this motor should probably be re-tuned
+        // 
+        // Params:
+        //    ratio - the scalar to multiply all terms used in the motor controller by
+        // Return:
+        //    int - if the command was sent successfully
+        int setOutputRatio(float ratio);
+
+
+        // Makes parameter set call to set the number of ticks per revolution
+        // for the encoder. Updates either the internal encoder or the alternate
+        // encoder based on the current mode. This number should be based on the
+        // specifications of the encoder and not any gear ratio
         //
         // Params:
-        //    newIdleMode - 0 for coast, 1 for brake
+        //    ticks - the new number of ticks per revolution
         // Return:
-        //    int - if the command was sent successfully        
-        int setIdleMode(uint8_t newIdleMode);
+        //    int - if the command was sent successfully
+        int setTicksPerEncoderRevolution(unsigned int ticks);
 
+
+        // Sets whether the alternate encoder should be reversed or not
+        // 
+        // Params:
+        //    reverse - should the alternate encoder be reversed
+        // Return:
+        //    int - if the command was sent successfully
+        int setAltEncoderReversed(bool reverse);
+
+
+
+
+        /*****************************************************************************************/
+        /*                                                                                       */
+        /*                                PID Config Functions                                   */
+        /*                                                                                       */
+        /*****************************************************************************************/
 
         // Sets the P constant on the motor controller for a given slot (default 0)
         //
@@ -446,6 +546,57 @@ class SparkMaxMC : public CANDevice {
         int setPIDF(float kP, float kI, float kD, float kF, int slot=0);
 
 
+
+
+        /*****************************************************************************************/
+        /*                                                                                       */
+        /*                                Encoder Functions                                      */
+        /*                                                                                       */
+        /*****************************************************************************************/
+
+
+        // (Telemetry Update Mechanical Position Enoder Port) Zeros
+        // the encoder value by updating the position held by the 
+        // motor controller.
+        //
+        // Params:
+        //    None
+        // Return:
+        //    None
+        void tareEncoder();
+
+
+        // Gets the current velocity of the encoder (either alternate or internal
+        // based on the mode) in RPM
+        //
+        // Params:
+        //    None
+        // Return:
+        //    float - the velocity of the encoder in RPM
+        float getVelocity();
+
+
+        // Gets the current position of the encoder. Note: this is not the
+        // raw value received from the motor controller, an offset is
+        // subtracted from it to allow for zeroing the encoder. Returns
+        // the encoder position based on the set encoder mode
+        //
+        // Params:
+        //    None
+        // Return:
+        //    float - the current encoder position
+        float getPosition();
+        
+
+
+
+        /*****************************************************************************************/
+        /*                                                                                       */
+        /*                          Parameter Access Functions                                   */
+        /*                                                                                       */
+        /*****************************************************************************************/
+
+
         // reads the pid constants used by the motor controller for given
         // slot. Stores it in a reference struct, returns 0 if all
         // messages were read successfully
@@ -462,69 +613,18 @@ class SparkMaxMC : public CANDevice {
 
         /*****************************************************************************************/
         /*                                                                                       */
-        /*                               Encoder Functions                                       */
+        /*                                    Getters                                            */
         /*                                                                                       */
         /*****************************************************************************************/
 
-
-        // (Telemetry Update Mechanical Position Enoder Port) Zeros
-        // the encoder value by updating the position held by the 
-        // motor controller.
+        // Gets the last applied output the motor uses from the 
+        // periodic data sent by the motor controller
         //
         // Params:
         //    None
         // Return:
-        //    int - if the command was sent successfully          
-        int tareEncoder();
-        
-
-
-
-        /*****************************************************************************************/
-        /*                                                                                       */
-        /*                              Firmware Functions                                       */
-        /*                                                                                       */
-        /*****************************************************************************************/
-
-        // (Config Factory Defaults) Sets all parameters to factory defaults. This is useful for 
-        // starting the motor controller from a known state. If this method is to work properly,
-        // it should be called before any other motor methods and before any heartbeat is sent
-        //
-        // Params:
-        //    None
-        // Return:
-        //    int - if the command was sent successfully   
-        int setToFactoryDefaults();
-
-
-        // (Config Burn Flash) Burns to flash all the parameters currently set that have been 
-        // changed. This is useful for if the motor controller brown's out that it doesn't 
-        // need to be reconfigured
-        //
-        // Params:
-        //    None
-        // Return:
-        //    int - if the command was sent successfully   
-        int burnFlash();
-
-
-        // (Clear Faults) Clears the sticky faults set by the motor controller.
-        //
-        // Params:
-        //    None
-        // Return:
-        //    int - if the command was sent successfully   
-        int clearStickyFaults();
-
-
-        // Prints the faults to stdout based on the fault
-        // specifier string
-        //
-        // Params:
-        //    faultString - the integer that holds the current faults
-        // Return:
-        //    None
-        void printFaults(uint16_t faultString);
+        //    float - the current applied output the motor uses on interval [-1, 1]
+        float getAppliedOutput() {return appliedOutput;}
 
 
         // Gets the current faults set by the motor
@@ -545,15 +645,79 @@ class SparkMaxMC : public CANDevice {
         int getStickyFaults() {return stickyFaults;}
 
 
+        // Returns if the motor is a follower. This is periodic data
+        // sent back that is made available 
+        // 
+        // Params:
+        //    None
+        // Return:
+        //    bool - is the motor following another motor
+        bool getIsFollower() {return isFollower;}
 
 
-        /*****************************************************************************************/
-        /*                                                                                       */
-        /*                                    Getters                                            */
-        /*                                                                                       */
-        /*****************************************************************************************/
+        // Returns the current temperature of the motor in degrees C
+        //
+        // Params: 
+        //    None
+        // Return:
+        //    int - the temperature of the motor in degrees C
+        int getTemperature() {return temperature_c;}
 
-        float getPosition() {return _internalEncoderPosition;}
+
+        // Returns the input voltage to the controller
+        //
+        // Params:
+        //    None
+        // Return:
+        //    float - the voltage in units V
+        float getBusVoltage() {return busVoltage;}
+
+
+        // Returns the raw phase current of the motor in A
+        //
+        // Params:
+        //    None
+        // Return:
+        //    float - the current in amps
+        float getBusCurrent() {return busCurrent;}
+
+
+        // returns the current encoder mode. 1 for alternate, 0 for internal
+        //
+        // Params:
+        //    None
+        // Return:
+        //    int - the encoder mode used by the motor controller
+        int getEncoderMode () {return encoderMode;}       
+
+
+        // if the motor is reversed or not
+        // Params:
+        //    None
+        // Return:
+        //    bool - is the motor reversed
+        bool getIsReversed() {return isReversed;}
+
+
+        // is the encoder reversed. Only meaningful for the alternate encoder because
+        // the internal encoder can never be out of phase with the motor motion (this
+        // is detected automatically by the motor controller)
+        //
+        // Params:
+        //    None
+        // Return:
+        //    bool - is the encoder reversed
+        bool getEncoderIsReversed() {return encoderIsReversed;}
+
+
+        // returns the current encoder offset used when taring the encoders
+        // 
+        // Params:
+        //    None
+        // Return:
+        //    float - the current encoder offset
+        float getEncoderOffset() {return encoderOffset;}
+
 
 
 
@@ -562,6 +726,25 @@ class SparkMaxMC : public CANDevice {
         /*                                Debug Functions                                        */
         /*                                                                                       */
         /*****************************************************************************************/
+
+        // Prints the faults to stdout based on the fault
+        // specifier string
+        //
+        // Params:
+        //    faultString - the integer that holds the current faults
+        // Return:
+        //    None
+        void printFaults(uint16_t faultString);
+
+
+        // Prints the PID constants to stdout for debugging
+        //
+        // Params:
+        //    slot - which PID slot to print
+        // Return:
+        //    None
+        void printPID(int slot);
+
 
         // (Identify) Causes the motor controller LED to flash
         // rapidly so it can be identified
