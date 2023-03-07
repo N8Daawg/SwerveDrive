@@ -78,8 +78,8 @@ void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LE
 
             case 2: { // periodic status 2 - motor position
                 uint8_t positionBytes[4] = {data[0], data[1], data[2], data[3]};
-                float position = bytesToFloat(positionBytes, 4);
-                std::cout << "Motor " << unsigned(deviceId) << " position: " << position << "\n";
+                _internalEncoderPosition = bytesToFloat(positionBytes, 4);
+                //std::cout << "Motor " << unsigned(deviceId) << " position: " << position << "\n";
                 break;
             }
 
@@ -256,7 +256,7 @@ int SparkMaxMC::setEncoderMode(bool alternate) {
     uint8_t useAlt = 0;
     if(alternate) useAlt = 1;
 
-    uint8_t data[5] = {useAlt, 0, 0, 0, sparkmax_bool};
+    uint8_t data[5] = {useAlt, 0, 0, 0, sparkmax_uint};
 
     int response = setGenericParameter(kDataPortConfig, data);
     if(response == 0) {
@@ -272,7 +272,7 @@ int SparkMaxMC::setEncoderMode(bool alternate) {
 int SparkMaxMC::setIdleMode(uint8_t newIdleMode) {
     if(conn == NULL) return -1;
 
-    uint8_t data[5] = {newIdleMode, 0, 0, 0, sparkmax_bool};
+    uint8_t data[5] = {newIdleMode, 0, 0, 0, sparkmax_uint};
 
     return setGenericParameter(kIdleMode, data);
 }

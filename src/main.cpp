@@ -5,47 +5,22 @@
 
 #include <chrono>
 #include <iostream>
+#include <iomanip>
+
 
 int main() {
     CANConnection canConnection("can0");
-    CANNetwork canNetwork(canConnection);
 
     SparkMaxMC motor1(canConnection, 1);
     SparkMaxMC motor2(canConnection, 2);
 
-    //canNetwork.addDevice(motor2);
+    motor1.setToFactoryDefaults();
+    motor2.setToFactoryDefaults();
+
+    
+    CANNetwork canNetwork(canConnection);
     canNetwork.addDevice(motor1);
 
-
-    motor1.setPIDF(0.0003, 0.000001, 0, 0, 0);
-    
-    pidf_constants constants;
-    int response = motor1.getFullPIDF(constants, 0);
-    std::cout << constants.kP << "\n";
-    std::cout << constants.kI << "\n";
-    std::cout << constants.kD << "\n";
-    std::cout << constants.kF << "\n";
-    std::cout << constants.kIZone << "\n";
-    std::cout << constants.kDFilter << "\n";
-    std::cout << constants.kOutputMin << "\n";
-    std::cout << constants.kOutputMax << "\n";
-
-
-    motor1.setToFactoryDefaults();
-
-    response = motor1.getFullPIDF(constants, 0);
-    std::cout << constants.kP << "\n";
-    std::cout << constants.kI << "\n";
-    std::cout << constants.kD << "\n";
-    std::cout << constants.kF << "\n";
-    std::cout << constants.kIZone << "\n";
-    std::cout << constants.kDFilter << "\n";
-    std::cout << constants.kOutputMin << "\n";
-    std::cout << constants.kOutputMax << "\n";
-
-    motor1.setPIDF(0.0003, 0.000001, 0, 0, 0);
-
-    motor1.burnFlash();
 
     // // test setting kP for slot 0
     // uint8_t kP_data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -122,11 +97,12 @@ int main() {
 
 
 
-
+    std::cout << "\n";
 
     while(1) {
-        motor1.identify();
-        std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep for 5 seconds before identifying again
+        //motor1.identify();
+        std::cout << '\r' << std::left << std::setw(20) << motor1.getPosition() << std::flush;
+        std::this_thread::sleep_for(std::chrono::milliseconds(2)); // sleep for 5 seconds before identifying again
     }
 
     return 0;

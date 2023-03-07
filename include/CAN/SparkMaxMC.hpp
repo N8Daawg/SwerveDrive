@@ -487,7 +487,8 @@ class SparkMaxMC : public CANDevice {
         /*****************************************************************************************/
 
         // (Config Factory Defaults) Sets all parameters to factory defaults. This is useful for 
-        // starting the motor controller from a known state
+        // starting the motor controller from a known state. If this method is to work properly,
+        // it should be called before any other motor methods and before any heartbeat is sent
         //
         // Params:
         //    None
@@ -542,6 +543,17 @@ class SparkMaxMC : public CANDevice {
         // Return:
         //    int - the current sticky faults
         int getStickyFaults() {return stickyFaults;}
+
+
+
+
+        /*****************************************************************************************/
+        /*                                                                                       */
+        /*                                    Getters                                            */
+        /*                                                                                       */
+        /*****************************************************************************************/
+
+        float getPosition() {return _internalEncoderPosition;}
 
 
 
