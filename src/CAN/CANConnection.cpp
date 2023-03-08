@@ -26,6 +26,7 @@ CANConnection::CANConnection() {
 
 // the connection open flag will be set by the function call
 CANConnection::CANConnection(const char* interface_name) {
+    connOpen = false;
     openConnection(interface_name);
     runReadThread = true;
 
@@ -86,6 +87,8 @@ int CANConnection::openConnection(const char* interface_name) {
 
     if(ioctl(sockfd, SIOCGIFINDEX, &ifr) < 0) {
         perror("ioctl failed");
+        connOpen = false;
+
         return -1;
     }
 
@@ -95,6 +98,8 @@ int CANConnection::openConnection(const char* interface_name) {
     addr.can_ifindex = ifr.ifr_ifindex;
     if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         perror("Bind failed");
+        connOpen = false;
+
         return -1;
     }
 
@@ -108,7 +113,7 @@ int CANConnection::openConnection(const char* interface_name) {
 // a command to the can bus if it is properly set up
 int CANConnection::writeFrame(uint32_t canId, uint8_t data[], int nBytes) {
     if(!connOpen) return -1;  // make sure connection is opened properly
-    if(nBytes < 0 || nBytes > PACKET_LENGTH) return -2;  // only accept valid packet sizes
+    if(nBytes < 0 || nBytes > PACKET_LENGTH) return -4;  // only accept valid packet sizes
 
     struct can_frame frame;
     frame.can_id = canId;

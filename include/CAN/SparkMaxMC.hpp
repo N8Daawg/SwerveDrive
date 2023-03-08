@@ -10,6 +10,7 @@
 
 #include "CANConnection.hpp"
 #include "CANDevice.hpp"
+#include "util/PIDController.hpp"
 
 
 // each parameter has a type associated with it that corresponds to an
@@ -171,21 +172,6 @@ enum E_SPARKMAX_PARAM {
 };
 
 
-// data for the pid constants used by the sparkmax
-// motor controller. See documentation for what 
-// each of these values mean
-typedef struct {
-    float kP;
-    float kI;
-    float kD;
-    float kF;
-    float kIZone;
-    float kDFilter;
-    float kOutputMin;
-    float kOutputMax;
-} pidf_constants;
-
-
 class SparkMaxMC : public CANDevice {
     private:
         // method for generating the can frame ID for a spark max
@@ -210,25 +196,27 @@ class SparkMaxMC : public CANDevice {
         void debugIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LENGTH]);
 
 
-        float appliedOutput;  // ranges from [-1, 1]
-        int faults;
-        int stickyFaults;
-        bool isFollower;
-        int temperature_c;    // motor temperature in degrees c
+        float appliedOutput = 0;  // ranges from [-1, 1]
+        int faults = 0;
+        int stickyFaults = 0;
+        bool isFollower = false;
+        int temperature_c = 0;    // motor temperature in degrees c
 
-        float busVoltage;  // the voltage drop of the motor
-        float busCurrent;  // the current supplied to the motor
+        float busVoltage = 0;  // the voltage drop of the motor
+        float busCurrent = 0;  // the current supplied to the motor
 
-        float _internalEncoderVelocity_rpm;  // the velocity of the internal encoder in rpm
-        float _internalEncoderPosition;      // the position of the built-in encoder in revolutions (not scaled or offset)
-        float _altEncoderVelocity_rpm;       // the velocity of the alternate encoder in rpm
-        float _altEncoderPosition;           // the position of the alternate encoder in revolutions (not scaled or offset)
+        float _internalEncoderVelocity_rpm = 0;  // the velocity of the internal encoder in rpm
+        float _internalEncoderPosition = 0;      // the position of the built-in encoder in revolutions (not scaled or offset)
+        float _altEncoderVelocity_rpm = 0;       // the velocity of the alternate encoder in rpm
+        float _altEncoderPosition = 0;           // the position of the alternate encoder in revolutions (not scaled or offset)
 
         int encoderMode;         // 0 for built-in, 1 for alternate
         bool isReversed;         // if the motor is reversed or not
         bool encoderIsReversed;  // if the encoder is reversed
         float encoderOffset;     // used for zeroing the encoder (either for internal or alternate
                                  // encoder based on which encoder mode is on)
+        float gearRatio;         // multiplied by position and velocity so they correspond to the output
+                                 // of the mechanism and not the motor
 
 
     public:
@@ -251,6 +239,10 @@ class SparkMaxMC : public CANDevice {
         // Return:
         //    The new instance
         SparkMaxMC(CANConnection& connection, int canDeviceId);
+
+
+        // destructor - makes sure motors are off
+        ~SparkMaxMC();
 
 
 
@@ -305,6 +297,18 @@ class SparkMaxMC : public CANDevice {
         int clearStickyFaults();
 
 
+        // (Periodic Status X) Sets the rate at which data is sent from the motor 
+        // controller for one of the periodic frames. This is helpful to decrease 
+        // traffic on the CAN Network
+        //
+        // Params:
+        //    frameNumber - which periodic frame to change the rate of
+        //    rate        - delay between frames in ms (period)
+        // Return:
+        //    int  - 0 if response was received
+        int setPeriodicRate(int frameNumber, uint16_t rate);
+
+
 
 
         /*****************************************************************************************/
@@ -353,23 +357,37 @@ class SparkMaxMC : public CANDevice {
 
 
         // (Position Set) Sets the closed loop speed controller where the
-        // target position is in rotations
+        // target position is in rotations. Moves to the absolute position
+        // without respecting any previous zeroing of the encoder
         //
         // Params:
         //    targetRotations: - the target position in units of rotations
         // Return:
         //    int - if the command was sent successfully       
-        int positionSet(float targetRotations);
+        int absPositionSet(float targetRotations);
 
 
-        // (Smart Motion Set) Sets the closed loop smart motion 
-        // controller where the target position is in rotations
+        // (Smart Motion Set) Sets the closed loop smart motion controller 
+        // where the target position is in rotations Moves to the absolute 
+        // position without respecting any previous zeroing of the encoder
         //
         // Params:
         //    targetRotations: - the target position in rotations
         // Return:
         //    int - if the command was sent successfully  
-        int smartPositionSet(float targetRotations);
+        int smartAbsPositionSet(float targetRotations);
+
+
+        // moves to an angle based on the current motor position. Uses one 
+        // of the absPositionSet methods but calculates the position to move
+        // to that is the least amount of travel. Respects gear ratio
+        //
+        // Params:
+        //    angle_rad - the angle to move to in radians
+        //    smart     - use the smart motion function that respects ramp rates or not
+        // Return:
+        //    int - if the command was sent successfully  
+        int moveToAngle(float angle_rad, bool smart=true);
 
 
 
@@ -453,14 +471,13 @@ class SparkMaxMC : public CANDevice {
 
         // Sets a scalar to be multiplied by all data coming from the encoder (velocity, position,
         // etc.) to factor things like gear ratios or unit conversions. This value is strictly
-        // multiplied so a gear reduction should supply a number less than 1. If this value changes,
-        // all PID loops involving this motor should probably be re-tuned
+        // multiplied so a gear reduction should supply a number less than 1.
         // 
         // Params:
         //    ratio - the scalar to multiply all terms used in the motor controller by
         // Return:
-        //    int - if the command was sent successfully
-        int setOutputRatio(float ratio);
+        //    None
+        void setGearRatio(float ratio) {gearRatio = ratio;}
 
 
         // Makes parameter set call to set the number of ticks per revolution
@@ -586,6 +603,15 @@ class SparkMaxMC : public CANDevice {
         // Return:
         //    float - the current encoder position
         float getPosition();
+
+
+        // Gets the current absolute position of the encoder
+        //
+        // Params:
+        //    None
+        // Return:
+        //    the current encoder value
+        float getAbsPosition();
         
 
 

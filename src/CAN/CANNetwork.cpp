@@ -4,8 +4,8 @@
 
 // Updates the current connection
 CANNetwork::CANNetwork(CANConnection& newConn) {
-    t = std::thread(&CANNetwork::_mainloop, this);
     conn = &newConn;
+    t = std::thread(&CANNetwork::_mainloop, this);
     runThread = true;
 }
 
@@ -44,7 +44,7 @@ void CANNetwork::_mainloop() {
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::microseconds(10000)); // sleep for 10ms
+        std::this_thread::sleep_for(std::chrono::microseconds(1000)); // sleep for 1ms
     }
 }
 

@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include <cstring>
+#include <cmath>
 
 #include "CAN/can_utils.hpp"
 #include "CAN/SparkMaxMC.hpp"
@@ -10,6 +11,11 @@
 SparkMaxMC::SparkMaxMC() {
     conn = NULL;
     deviceId = 0;
+
+    encoderMode = 0;
+    isReversed = false;
+    encoderIsReversed = false;
+    encoderOffset = 0;
 }
 
 
@@ -17,6 +23,16 @@ SparkMaxMC::SparkMaxMC() {
 SparkMaxMC::SparkMaxMC(CANConnection& connection, int canDeviceId) {
     conn = &connection;
     deviceId = canDeviceId;
+
+    encoderMode = 0;
+    isReversed = false;
+    encoderIsReversed = false;
+    encoderOffset = 0;
+}
+
+
+SparkMaxMC::~SparkMaxMC() {
+    dutyCycleSet(0);
 }
 
 
@@ -143,6 +159,20 @@ int SparkMaxMC::clearStickyFaults() {
 }
 
 
+// (Periodic Status X) makes API call to change how fast data comes in
+int SparkMaxMC::setPeriodicRate(int frameNumber, uint16_t rate) {
+    if(frameNumber < 0 || frameNumber > 6) return -4;  // invalid frame choice
+    if(conn == NULL) return -1;
+
+    uint32_t canId = getCanFrameId(6, frameNumber);  // api class and api index
+
+    uint8_t bytes[2];  // takes a 2 byte unsigned integer
+    floatToBytes(rate, bytes, 2);
+
+    return conn->writeFrame(canId, bytes, 2);  // sends 2 bytes for the new period
+}
+
+
 
 
 
@@ -195,10 +225,12 @@ int SparkMaxMC::smartVelocitySet(float targetRPM) {
 
     uint32_t canId = getCanFrameId(1, 3);  // api class and api index
 
-    uint8_t bytes[4];  // takes a 4 byte floating point number
-    floatToBytes(targetRPM, bytes, 4);
+    uint8_t bytes[8];  // takes a 4 byte floating point number
+    memset(bytes, 0, sizeof(bytes));
 
-    return conn->writeFrame(canId, bytes, 4);
+    floatToBytes(targetRPM, bytes, 4);  // fill first 4 bytes with the setpoint
+
+    return conn->writeFrame(canId, bytes, 8);
 }
 
 
@@ -209,38 +241,64 @@ int SparkMaxMC::voltageSet(float targetVoltage) {
 
     uint32_t canId = getCanFrameId(4, 2);  // api class and api index
 
-    uint8_t bytes[4];  // takes a 4 byte floating point number
-    floatToBytes(targetVoltage, bytes, 4);
+    uint8_t bytes[8];  // takes a 4 byte floating point number
+    memset(bytes, 0, sizeof(bytes));
 
-    return conn->writeFrame(canId, bytes, 4);
+    floatToBytes(targetVoltage, bytes, 4);  // fill first 4 bytes with the setpoint
+
+    return conn->writeFrame(canId, bytes, 8);
 }
 
 
 // (Position Set) Sets the closed loop speed controller where the
 // target position is in rotations      
-int SparkMaxMC::positionSet(float targetRotations) {
+int SparkMaxMC::absPositionSet(float targetRotations) {
     if(conn == NULL) return -1;
 
     uint32_t canId = getCanFrameId(3, 2);  // api class and api index
 
-    uint8_t bytes[4];  // takes a 4 byte floating point number
-    floatToBytes(targetRotations, bytes, 4);
+    uint8_t bytes[8];  // takes a 4 byte floating point number
+    memset(bytes, 0, sizeof(bytes));
 
-    return conn->writeFrame(canId, bytes, 4);
+    floatToBytes(targetRotations, bytes, 4);  // fill first 4 bytes with the setpoint
+
+    return conn->writeFrame(canId, bytes, 8);
 }
 
 
 // (Smart Motion Set) Sets the closed loop smart motion 
 // controller where the target position is in rotations 
-int SparkMaxMC::smartPositionSet(float targetRotations) {
+int SparkMaxMC::smartAbsPositionSet(float targetRotations) {
     if(conn == NULL) return -1;
 
     uint32_t canId = getCanFrameId(5, 2);  // api class and api index
 
-    uint8_t bytes[4];  // takes a 4 byte floating point number
-    floatToBytes(targetRotations, bytes, 4);
+    uint8_t bytes[8];  // takes a 4 byte floating point number
+    memset(bytes, 0, sizeof(bytes));
 
-    return conn->writeFrame(canId, bytes, 4);
+    floatToBytes(targetRotations, bytes, 4);  // fill first 4 bytes with the setpoint
+
+    return conn->writeFrame(canId, bytes, 8);
+}
+
+
+// calculates where to move to and then moves there
+int SparkMaxMC::moveToAngle(float angle_rad, bool smart /*true*/) {
+    float currentPosition = getPosition();
+    int numRevolutions = (int)currentPosition;
+
+    float currentAngle = (currentPosition - numRevolutions) * 2 * M_PI;
+    float diffAngle = angle_rad - currentAngle;
+
+    float desiredPosition = numRevolutions + (diffAngle / (2 * M_PI)) + encoderOffset;
+    //std::cout << currentPosition << " " << numRevolutions << " " << currentAngle << " " << diffAngle << " " << _internalEncoderPosition << " " << encoderOffset << " " << std::flush;
+    //std::cout << desiredPosition << "\n";
+
+    if(smart) {
+        return smartAbsPositionSet(desiredPosition);
+    } else {
+        return absPositionSet(desiredPosition);
+    }
 }
 
 
@@ -353,16 +411,6 @@ int SparkMaxMC::setEncoderMode(bool alternate) {
 
     return response;
 
-}
-
-
-// makes parameter set API call to update the output ratio
-int SparkMaxMC::setOutputRatio(float ratio) {
-    uint8_t kRatioData[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-    floatToBytes(ratio, kRatioData, 4);
-    kRatioData[4] = sparkmax_float32;
-
-    return setGenericParameter(kOutputRatio, kRatioData);
 }
 
 
@@ -506,9 +554,9 @@ void SparkMaxMC::tareEncoder() {
 // Chooses which velocity to return based on the encoder mode
 float SparkMaxMC::getVelocity() {
     if(encoderMode == 0) {
-        return _internalEncoderVelocity_rpm;
+        return gearRatio * _internalEncoderVelocity_rpm;
     } else if(encoderMode == 1) {
-        return _altEncoderVelocity_rpm;
+        return gearRatio * _altEncoderVelocity_rpm;
     } else {
         return 0;
     }
@@ -519,9 +567,21 @@ float SparkMaxMC::getVelocity() {
 // Subtracts the encoder offset to respect zeroing
 float SparkMaxMC::getPosition() {
     if(encoderMode == 0) {
-        return _internalEncoderPosition - encoderOffset;
+        return gearRatio * (_internalEncoderPosition - encoderOffset);
     } else if(encoderMode == 1) {
-        return _altEncoderPosition - encoderOffset;
+        return gearRatio * (_altEncoderPosition - encoderOffset);
+    } else {
+        return 0;
+    }
+}
+
+
+// chooses which value to return based on encoder mode
+float SparkMaxMC::getAbsPosition() {
+    if(encoderMode == 0) {
+        return _internalEncoderPosition;
+    } else if(encoderMode == 1) {
+        return _altEncoderPosition;
     } else {
         return 0;
     }
