@@ -7,6 +7,7 @@
 #include "CAN/CANConnection.hpp"
 #include "CAN/SparkMaxMC.hpp"
 #include "CAN/can_utils.hpp"
+#include "Drive/SwerveModule.hpp"
 
 
 void sleep(int millis) {
@@ -31,6 +32,8 @@ int main() {
     motor2.setGearRatio(1/(5.3333333 * 10));
     motor2.setTicksPerEncoderRevolution(42);
 
+    motor2.setMotorReversed(true);
+
     motor1.burnFlash();
     motor2.burnFlash();
 
@@ -44,20 +47,16 @@ int main() {
     motor1.tareEncoder();
     motor2.tareEncoder();
 
-    motor2.setPIDF(0.00015, 0, 0, 0);
-    sleep(10);
-    //motor2.dutyCycleSet(0.2);
-    //motor1.dutyCycleSet(1);
-    //motor1.absPositionSet(5);
-    //motor2.moveToAngle(M_PI, false);
-    motor2.velocitySet(3000);
+    SwerveModule s1(motor1, motor2);
+    s1.updateMountLocation(-0.5, 0.5);
+    //s1.moveRobotCentric(0, 1, 0);
 
-    std::cout << "\n";
 
     while(1) {
+        s1.moveRobotCentric(1, 0, 0, -M_PI / 2);
         //motor1.identify();
         //motor2.printFaults(motor2.getFaults());
-        std::cout << '\r' << std::left << std::setw(20) << motor2.getAppliedOutput() << std::flush;
+        //std::cout << '\r' << std::left << std::setw(20) << motor2.getAppliedOutput() << std::flush;
         std::this_thread::sleep_for(std::chrono::milliseconds(2)); // sleep for 5 seconds before identifying again
     }
 

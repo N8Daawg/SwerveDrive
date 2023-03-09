@@ -70,4 +70,14 @@ double dot_product(cartesian_vector v1, cartesian_vector v2);
 double angleDiff_rad(double a1, double a2);
 
 
+// Rotates a 2D vector by theta radians. Converts to polar
+// adds the angle and then converts back
+//
+// Params:
+//    x          - the x coordinate of the vector
+//    y          - the y coordinate of the vector
+//    dtheta_rad - the angle to rotate by in radians
+cartesian_vector rotateVector(cartesian_vector v, double dtheta_rad);
+
+
 #endif

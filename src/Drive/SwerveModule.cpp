@@ -9,15 +9,19 @@ SwerveModule::SwerveModule(SparkMaxMC& drive, SparkMaxMC& pivot) {
     driveMotor = &drive;
     pivotMotor = &pivot;
 
-    pidf_constants constants = {0.0001, 0, 0, 0, 0, 0, 0, 0};
+    pidf_constants constants = {2.3, 0, 0, 0, 0, 0, -1, 1};
     controller.setConstants(constants);
     controller.setWrapAngle(true);  // we will use the controller for angles so allow wrap-around
 }
 
 
 // uses vector math to update the targets
-void SwerveModule::moveToTarget(double inputX, double inputY, double w) {
-cartesian_vector strafeContrib = {inputX, inputY, 0.0};  // contribution to velocity from strafing vector
+void SwerveModule::moveToTarget(double inputX, double inputY, double w, double thetaOffset_rad) {
+    cartesian_vector rotatedInputs = rotateVector({inputX, inputY, 0}, thetaOffset_rad);  // rotate the vector
+    inputX = rotatedInputs.x;
+    inputY = rotatedInputs.y;
+
+    cartesian_vector strafeContrib = {inputX, inputY, 0.0};  // contribution to velocity from strafing vector
 
     cartesian_vector omega = {0.0, 0.0, -w};  // from RHR clockwise means negative z direction
     cartesian_vector position = {xPos_m, yPos_m, 0.0};
@@ -51,7 +55,7 @@ cartesian_vector strafeContrib = {inputX, inputY, 0.0};  // contribution to velo
 
     double targetAngle_rad;  // the closest angle to move to
     int sgn;                 // multiplier for if going backwards or backwards
-    if(angleDiff_rad(currentAngle_rad, fTargetAngle_rad) < angleDiff_rad(currentAngle_rad, bTargetAngle_rad)) {  // forwards is less change
+    if(angleDiff_rad(currentAngle_rad, fTargetAngle_rad) <= angleDiff_rad(currentAngle_rad, bTargetAngle_rad)) {  // forwards is less change
         targetAngle_rad = fTargetAngle_rad;
         sgn = 1;
     } else {  // backwards is less change
@@ -60,13 +64,7 @@ cartesian_vector strafeContrib = {inputX, inputY, 0.0};  // contribution to velo
     }
 
     // update the target velocities factoring in the sign
-    targetVx *= sgn;
-    targetVy *= sgn;
-
-
-    std::cout << "Target Vx: " << targetVx << "    Target Vy: " << targetVy << "    Target angle: " << targetAngle_rad << "\n";
-    
-    double driveV = magnitude({targetVx, targetVy, 0});
+    double driveV = sgn * magnitude({targetVx, targetVy, 0});
 
     if(controller.getSetpoint() != targetAngle_rad) {  // new setpoint
         controller.newSetpoint(targetAngle_rad);
@@ -74,8 +72,12 @@ cartesian_vector strafeContrib = {inputX, inputY, 0.0};  // contribution to velo
 
     double pivotV = controller.step(currentAngle_rad);
 
-    driveMotor->velocitySet(driveV * maxDriveVelocity);
-    pivotMotor->velocitySet(pivotV * maxPivotVelocity);
+    std::cout << "Target Vx: " << targetVx << "    Target Vy: " << targetVy << "    Target angle: " << targetAngle_rad << "    pivotV " << pivotV << "\n";
+
+    //driveMotor->velocitySet(driveV * maxDriveVelocity);
+    //pivotMotor->velocitySet(pivotV * maxPivotVelocity);
+    driveMotor->dutyCycleSet(driveV);
+    pivotMotor->dutyCycleSet(pivotV);
 }
 
 
@@ -87,6 +89,6 @@ void SwerveModule::updateMountLocation(double x, double y) {
 }
 
 
-void SwerveModule::moveRobotCentric(double inputX, double inputY, double w) {
-    moveToTarget(inputX, inputY, w);
+void SwerveModule::moveRobotCentric(double inputX, double inputY, double w, double thetaOffset_rad) {
+    moveToTarget(inputX, inputY, w, thetaOffset_rad);
 }

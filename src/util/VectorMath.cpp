@@ -36,3 +36,14 @@ double angleDiff_rad(double a1, double a2) {
     
     return fabs(diff);
 }
+
+
+// Rotates a 2D vector by theta radians. Converts to polar
+// adds the angle and then converts back
+cartesian_vector rotateVector(cartesian_vector v, double dtheta_rad) {
+    double r = sqrt(pow(v.x, 2) + pow(v.y, 2));
+    double theta_rad = atan2(v.y, v.x) + dtheta_rad;
+
+    cartesian_vector v2 = {r * cos(theta_rad), r * sin(theta_rad), 0};
+    return v2;
+}

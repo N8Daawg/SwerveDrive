@@ -21,7 +21,7 @@ class SwerveModule {
         double yPos_m;  // length of robot in meters
 
         SparkMaxMC* driveMotor;
-        SparkMaxMC* pivotMotor;
+        SparkMaxMC* pivotMotor;  // NOTE: this motor should be set up so that a positive signal moves it CCW
 
         int maxDriveVelocity = 5800;
         int maxPivotVelocity = 11000;
@@ -41,7 +41,7 @@ class SwerveModule {
         //                  is move full clockwise
         // Return:
         //    None
-        void moveToTarget(double inputX, double inputY, double w);
+        void moveToTarget(double inputX, double inputY, double w, double thetaOffset_rad);
 
 
     public:
@@ -76,7 +76,7 @@ class SwerveModule {
         //    inputY - the target y direction, normalised to [-1, 1]
         //    w      - the target radial velocity, normalised to [-1, 1] where 1
         //             is move full clockwise
-        void moveRobotCentric(double inputX, double inputY, double w);
+        void moveRobotCentric(double inputX, double inputY, double w, double thetaOffset_rad);
 
 
 
