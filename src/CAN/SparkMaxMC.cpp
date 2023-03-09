@@ -44,6 +44,24 @@ uint32_t SparkMaxMC::getCanFrameId(int apiClass, int apiIndex) {
 }
 
 
+// use can utils to generate the setpoint frame based on the documentation
+void SparkMaxMC::getSetpointFrame(uint8_t bytes[8], float setpoint, int16_t arbFF, uint8_t pidSlot) {
+    memset(bytes, 0, 8 * sizeof(uint8_t));       // clear data
+
+    floatToBytes(setpoint, bytes, 4);            // fill first 4 bytes with the setpoint
+    
+    uint8_t arbFFBytes[2];
+    memset(arbFFBytes, 0, 8 * sizeof(uint8_t));
+    int64ToBytes(arbFF, arbFFBytes, 2);
+    bytes[4] = arbFFBytes[0];                    // next 2 bytes are arbFF
+    bytes[5] = arbFFBytes[1];
+
+    bytes[6] = pidSlot;                          // byte 7 is for pid slot and arb units, but only changing pid slot
+
+    // ignore last byte, it can stay 0
+}
+
+
 void SparkMaxMC::debugIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LENGTH]) {
     can_id_params params;
     decodeCanFrameID(canFrameId, &params);
@@ -74,9 +92,9 @@ void SparkMaxMC::_parseIncomingFrame(uint32_t canFrameId, uint8_t data[PACKET_LE
                 uint8_t faultBytes[2] = {data[2], data[3]};
                 uint8_t stickyFaultBytes[2] = {data[4], data[5]};
 
-                appliedOutput = bytesTouint64(appliedBytes, 2) / 32767.0;  // divide by int16 max to scale to [-1, 1]
-                faults = bytesTouint64(faultBytes, 2);
-                stickyFaults = bytesTouint64(stickyFaultBytes, 2);
+                appliedOutput = bytesToSignedInt64(appliedBytes, 2) / 32767.0;  // divide by int16 max to scale to [-1, 1]
+                faults = bytesToUnsignedInt64(faultBytes, 2);
+                stickyFaults = bytesToUnsignedInt64(stickyFaultBytes, 2);
                 isFollower = data[7];
 
                 break;
@@ -190,13 +208,8 @@ int SparkMaxMC::dutyCycleSet(float percent) {
 
     uint32_t canId = getCanFrameId(0, 2);  // api class and api index
 
-    uint8_t bytes[8];  // takes a 4 byte floating point number, rest should be 0s unless 
-                       // you really know what you are doing. This ignores any of the
-                       // feed-foarward or pid data in the frame which should be fine
-                       // because it is not used in a duty cycle command
-    memset(bytes, 0, sizeof(bytes));
-
-    floatToBytes(percent, bytes, 4);  // fill first 4 bytes with the setpoint
+    uint8_t bytes[8];  // takes a 4 byte floating point number
+    getSetpointFrame(bytes, percent, 0, 0);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -209,9 +222,7 @@ int SparkMaxMC::velocitySet(float targetRPM) {
     uint32_t canId = getCanFrameId(1, 2);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    memset(bytes, 0, sizeof(bytes));
-
-    floatToBytes(targetRPM, bytes, 4);  // fill first 4 bytes with the setpoint
+    getSetpointFrame(bytes, targetRPM, 0, 0);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -226,9 +237,7 @@ int SparkMaxMC::smartVelocitySet(float targetRPM) {
     uint32_t canId = getCanFrameId(1, 3);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    memset(bytes, 0, sizeof(bytes));
-
-    floatToBytes(targetRPM, bytes, 4);  // fill first 4 bytes with the setpoint
+    getSetpointFrame(bytes, targetRPM, 0, 0);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -242,9 +251,7 @@ int SparkMaxMC::voltageSet(float targetVoltage) {
     uint32_t canId = getCanFrameId(4, 2);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    memset(bytes, 0, sizeof(bytes));
-
-    floatToBytes(targetVoltage, bytes, 4);  // fill first 4 bytes with the setpoint
+    getSetpointFrame(bytes, targetVoltage, 0, 0);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -258,9 +265,7 @@ int SparkMaxMC::absPositionSet(float targetRotations) {
     uint32_t canId = getCanFrameId(3, 2);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    memset(bytes, 0, sizeof(bytes));
-
-    floatToBytes(targetRotations, bytes, 4);  // fill first 4 bytes with the setpoint
+    getSetpointFrame(bytes, targetRotations, 0, 0);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -274,9 +279,7 @@ int SparkMaxMC::smartAbsPositionSet(float targetRotations) {
     uint32_t canId = getCanFrameId(5, 2);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    memset(bytes, 0, sizeof(bytes));
-
-    floatToBytes(targetRotations, bytes, 4);  // fill first 4 bytes with the setpoint
+    getSetpointFrame(bytes, targetRotations, 0, 0);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -585,6 +588,13 @@ float SparkMaxMC::getAbsPosition() {
     } else {
         return 0;
     }
+}
+
+
+// calculates the current angle
+float SparkMaxMC::getAngle_rad() {
+    float revolution = getPosition() - (int)getPosition();  // get the decimal number of revolutions (ignore number of times around)
+    return revolution * 2 * M_PI; // angle = revolutions * 2pi rad/revolution
 }
 
 

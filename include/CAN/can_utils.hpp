@@ -76,6 +76,19 @@ int decodeCanFrameDevice(uint32_t msg);
 void uint64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes);
 
 
+// populates an array of bytes from a signed integer
+// with the msb at index numBytes - 1 and the lsb at index 0
+//
+// Params:
+//    n        - the number to split into bytes
+//    bytes    - the array where the bytes will be stored with the msb at 
+//               index numBytes - 1 and the lsb at index 0
+//    numBytes - the number of bytes to split the integer into (usually 8)
+// Return:
+//    None
+void int64ToBytes(int64_t n, uint8_t bytes[], uint8_t numBytes);
+
+
 // populates an array of bytes from a floating point number
 // with the msb at index numBytes - 1 and the lsb at index 0
 //
@@ -96,8 +109,19 @@ void floatToBytes(float n, uint8_t bytes[], uint8_t numBytes);
 //    bytes    - an array of bytes to decode, must be same size as numBytes
 //    numBytes - the number of bytes to decode 
 // Return:
+//    uint64_t - the decoded 64 bit unsigned integer
+uint64_t bytesToUnsignedInt64(uint8_t bytes[], uint8_t numBytes);
+
+
+// given an array of bytes with the msb at index numBytes - 1 and lsb and index
+// 0, creates and returns an unsigned 64 bit integer
+//
+// Params:
+//    bytes    - an array of bytes to decode, must be same size as numBytes
+//    numBytes - the number of bytes to decode 
+// Return:
 //    int64_t - the decoded 64 bit integer
-int64_t bytesTouint64(uint8_t bytes[], uint8_t numBytes);
+int64_t bytesToSignedInt64(uint8_t bytes[], uint8_t numBytes);
 
 
 // given an array of bytes with the msb at index numBytes - 1 and lsb at

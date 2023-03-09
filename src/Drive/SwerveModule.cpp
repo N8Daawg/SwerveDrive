@@ -8,12 +8,16 @@
 SwerveModule::SwerveModule(SparkMaxMC& drive, SparkMaxMC& pivot) {
     driveMotor = &drive;
     pivotMotor = &pivot;
+
+    pidf_constants constants = {0.0001, 0, 0, 0, 0, 0, 0, 0};
+    controller.setConstants(constants);
+    controller.setWrapAngle(true);  // we will use the controller for angles so allow wrap-around
 }
 
 
 // uses vector math to update the targets
-void SwerveModule::updateTargets(double inputX, double inputY, double w) {
-    cartesian_vector strafeContrib = {inputX, inputY, 0.0};  // contribution to velocity from strafing vector
+void SwerveModule::moveToTarget(double inputX, double inputY, double w) {
+cartesian_vector strafeContrib = {inputX, inputY, 0.0};  // contribution to velocity from strafing vector
 
     cartesian_vector omega = {0.0, 0.0, -w};  // from RHR clockwise means negative z direction
     cartesian_vector position = {xPos_m, yPos_m, 0.0};
@@ -21,26 +25,59 @@ void SwerveModule::updateTargets(double inputX, double inputY, double w) {
     
     // normalize turn contrib vector
     // from cross product |x| = |(y1 * z2) - (z1 * y2)|
-    // we are taking omega cross position so y1 * z2 will always be 0, 
-    // thus the max this term can be is omega=1 times the y position (yPos_m)
-    // A similar argument can be made for the maximum y value of this vector,
-    // which will just be the x position (xPos_m)
+    // we are taking omega cross position, so y1 * z2 will always be 0, (no z contribution from 2d 
+    // position vector) thus the max this term can be is omega=1 (from normalization) times the y 
+    // position (yPos_m). 
+    // A similar argument can be made for the maximum y value of this vector, which 
+    // will just be the x position (xPos_m)
     scale(turnContrib.x, -1.0, 1.0, -yPos_m, yPos_m);
     scale(turnContrib.y, -1.0, 1.0, -xPos_m, xPos_m);
 
     cartesian_vector target = add_vectors(strafeContrib, turnContrib);  // add the contributions
 
     // normalize target vector
-    // because both bectors are already normalized, the maximum range of values before
+    // because both contributions are already normalized, the maximum range of values before
     // normalization is [-2, 2], which we want to be [-1, 1]
-    scale(target.x, -1.0, 1.0, -2.0, 2.0);
-    scale(target.y, -1.0, 1.0, -2.0, 2.0);
+    double targetVx = scale(target.x, -1.0, 1.0, -2.0, 2.0);
+    double targetVy = scale(target.y, -1.0, 1.0, -2.0, 2.0);
 
-    // update the target velocities
-    targetVx = target.x;
-    targetVy = target.y;
+    // calculate the angle to move to based on the current angle
+    double currentAngle_rad = pivotMotor->getAngle_rad();
+    if(currentAngle_rad > M_PI) currentAngle_rad -= 2 * M_PI;  // convert to [-pi, pi]
+    
+    double fTargetAngle_rad = atan2(targetVy, targetVx);         // angle between [-pi, pi] if motor were to move forwards
+    double bTargetAngle_rad = atan2(targetVy, targetVx) + M_PI;  // angle between [-pi, pi] if motor were to move backwards
+    if(bTargetAngle_rad > M_PI) bTargetAngle_rad -= 2 * M_PI;
 
+    double targetAngle_rad;  // the closest angle to move to
+    int sgn;                 // multiplier for if going backwards or backwards
+    if(angleDiff_rad(currentAngle_rad, fTargetAngle_rad) < angleDiff_rad(currentAngle_rad, bTargetAngle_rad)) {  // forwards is less change
+        targetAngle_rad = fTargetAngle_rad;
+        sgn = 1;
+    } else {  // backwards is less change
+        targetAngle_rad = bTargetAngle_rad;
+        sgn = -1;
+    }
+
+    // update the target velocities factoring in the sign
+    targetVx *= sgn;
+    targetVy *= sgn;
+
+
+    std::cout << "Target Vx: " << targetVx << "    Target Vy: " << targetVy << "    Target angle: " << targetAngle_rad << "\n";
+    
+    double driveV = magnitude({targetVx, targetVy, 0});
+
+    if(controller.getSetpoint() != targetAngle_rad) {  // new setpoint
+        controller.newSetpoint(targetAngle_rad);
+    }
+
+    double pivotV = controller.step(currentAngle_rad);
+
+    driveMotor->velocitySet(driveV * maxDriveVelocity);
+    pivotMotor->velocitySet(pivotV * maxPivotVelocity);
 }
+
 
 
 // simple setter function
@@ -50,8 +87,6 @@ void SwerveModule::updateMountLocation(double x, double y) {
 }
 
 
-void SwerveModule::move(double inputX, double inputY, double w) {
-    updateTargets(inputX, inputY, w);
-
-    std::cout << "Target Vx: " << targetVx << "    Target Vy: " << targetVy << "\n";
+void SwerveModule::moveRobotCentric(double inputX, double inputY, double w) {
+    moveToTarget(inputX, inputY, w);
 }

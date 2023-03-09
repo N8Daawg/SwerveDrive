@@ -185,6 +185,18 @@ class SparkMaxMC : public CANDevice {
         uint32_t getCanFrameId(int apiClass, int apiIndex);
 
 
+        // Fills in the data for a setpoint frame - i.e. motion commands
+        //
+        // Params:
+        //    data     - where to write the bytes to
+        //    setpoint - the setpoint
+        //    arbFF    - an arbitrary amount of voltage to add to the motor output in volts (multiplied by 0.0009765625)
+        //    pidSlot  - which pid slot to use
+        // Return:
+        //    None
+        void getSetpointFrame(uint8_t bytes[8], float setpoint, int16_t arbFF, uint8_t pidSlot);
+
+
         // prints tothe terminal the corresponding id information based on the frc
         // protocal for a given frame
         //
@@ -358,7 +370,9 @@ class SparkMaxMC : public CANDevice {
 
         // (Position Set) Sets the closed loop speed controller where the
         // target position is in rotations. Moves to the absolute position
-        // without respecting any previous zeroing of the encoder
+        // without respecting any previous zeroing of the encoder.
+        // NOTE: this api call appears to not function properly on the sparkmax.
+        // DON'T USE UNTIL FIRMWARE FIXED
         //
         // Params:
         //    targetRotations: - the target position in units of rotations
@@ -370,6 +384,8 @@ class SparkMaxMC : public CANDevice {
         // (Smart Motion Set) Sets the closed loop smart motion controller 
         // where the target position is in rotations Moves to the absolute 
         // position without respecting any previous zeroing of the encoder
+        // NOTE: this api call appears to not function properly on the sparkmax.
+        // DON'T USE UNTIL FIRMWARE FIXED
         //
         // Params:
         //    targetRotations: - the target position in rotations
@@ -381,6 +397,8 @@ class SparkMaxMC : public CANDevice {
         // moves to an angle based on the current motor position. Uses one 
         // of the absPositionSet methods but calculates the position to move
         // to that is the least amount of travel. Respects gear ratio
+        // NOTE: this method relies on api calls that appear to not function 
+        // properly on the sparkmax. DON'T USE UNTIL FIRMWARE FIXED
         //
         // Params:
         //    angle_rad - the angle to move to in radians
@@ -612,6 +630,16 @@ class SparkMaxMC : public CANDevice {
         // Return:
         //    the current encoder value
         float getAbsPosition();
+
+
+        // Gets the current angle of the encoder on interval [0, 2pi]
+        // while respecting the gear ratio and the encoder offset
+        // 
+        // Params:
+        //    None
+        // Return:
+        //    float - the current angle in radians
+        float getAngle_rad();
         
 
 

@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include "CAN/SparkMaxMC.hpp"
+#include "util/PIDController.hpp"
 #include "util/VectorMath.hpp"
 
 
@@ -22,21 +23,25 @@ class SwerveModule {
         SparkMaxMC* driveMotor;
         SparkMaxMC* pivotMotor;
 
-        double targetVx;     // variables that define the target values for each degree of freedom
-        double targetVy;     // Vx and Vy will be normalised to [-1, 1], theta will be normalized 
+        int maxDriveVelocity = 5800;
+        int maxPivotVelocity = 11000;
+
+        PIDController controller;  // the position pid controller for the pivot motor
 
 
-        // updates the targets for each degree of freedom on the module
-        // based on the inputs
+        // updates the motor motion for each degree of freedom on the module
+        // based on the inputs. Calculates where to pivot to and how fast
+        // the drive motor should be spinning. The magnitude of x and y should
+        // be 1
         //
         // Params:
-        //    inputX - the target x direction, normalised to [-1, 1]
-        //    inputY - the target y direction, normalised to [-1, 1]
-        //    w      - the target radial velocity, normalised to [-1, 1] where 1
-        //             is move full clockwise
+        //    inputX      - the target x direction, normalised to [-1, 1]
+        //    inputY      - the target y direction, normalised to [-1, 1]
+        //    w           - the target radial velocity, normalised to [-1, 1] where 1
+        //                  is move full clockwise
         // Return:
         //    None
-        void updateTargets(double inputX, double inputY, double w);
+        void moveToTarget(double inputX, double inputY, double w);
 
 
     public:
@@ -71,7 +76,7 @@ class SwerveModule {
         //    inputY - the target y direction, normalised to [-1, 1]
         //    w      - the target radial velocity, normalised to [-1, 1] where 1
         //             is move full clockwise
-        void move(double inputX, double inputY, double w);
+        void moveRobotCentric(double inputX, double inputY, double w);
 
 
 

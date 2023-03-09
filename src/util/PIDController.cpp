@@ -29,6 +29,11 @@ void PIDController::newSetpoint(double sp) {
 // loop does not need to be called with a constant period
 double PIDController::step(double feedback) {
     double error = setpoint - feedback;
+    if(wrapAngle && error > M_PI) {
+        error -= 2 * M_PI;
+    } else if(wrapAngle && error < -M_PI) {
+        error += 2 * M_PI;
+    }
 
     std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
     double dt = std::chrono::duration_cast<std::chrono::milliseconds> (now - prevTime).count();

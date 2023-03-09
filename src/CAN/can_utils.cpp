@@ -50,7 +50,7 @@ int decodeCanFrameDevice(uint32_t msg) {
 }
 
 
-// populates an array of bytes from an integer with the msb at index numBytes - 1
+// populates an array of bytes from an unsigned integer with the msb at index numBytes - 1
 // and the lsb at index 0
 void uint64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes) {
     for(int i = 0; i < numBytes; i++) {
@@ -61,10 +61,19 @@ void uint64ToBytes(uint64_t n, uint8_t bytes[], uint8_t numBytes) {
 }
 
 
+// populates an array of bytes from a signed integer with the msb at index numBytes - 1
+// and the lsb at index 0
+void int64ToBytes(int64_t n, uint8_t bytes[], uint8_t numBytes) {
+    uint64_t intN = *(uint64_t*)&n;    // convert from signed to unsigned but keep bits the same by casting.
+                                       // This is necessary to use bit shifting operations to convert this to 
+                                       // bytes
+    uint64ToBytes(intN, bytes, numBytes);
+}
+
 // populates an array of bytes from a floating point number
 // with the msb at index numBytes - 1 and the lsb at index 0
 void floatToBytes(float n, uint8_t bytes[], uint8_t numBytes) {
-    uint64_t intN = *(int*)&n;         // convert the float to an integer but keeping bits the same by casting
+    uint64_t intN = *(uint64_t*)&n;    // convert the float to an integer but keeping bits the same by casting
                                        // this is necessary to use bit shifting operations to convert this to 
                                        // bytes
     uint64ToBytes(intN, bytes, numBytes);
@@ -73,7 +82,7 @@ void floatToBytes(float n, uint8_t bytes[], uint8_t numBytes) {
 
 // given an array of bytes with the msb at index numBytes - 1 and lsb and index
 // 0, creates and returns a 64 bit integer
-int64_t bytesTouint64(uint8_t bytes[], uint8_t numBytes) {
+uint64_t bytesToUnsignedInt64(uint8_t bytes[], uint8_t numBytes) {
     uint64_t intN = 0;
     for(int i = 0; i < numBytes; i++) {
         intN |= bytes[i] << (8 * i);
@@ -84,10 +93,19 @@ int64_t bytesTouint64(uint8_t bytes[], uint8_t numBytes) {
 }
 
 
+// given an array of bytes with the msb at index numBytes - 1 and lsb and index
+// 0, creates and returns an unsigned 64 bit integer
+int64_t bytesToSignedInt64(uint8_t bytes[], uint8_t numBytes) {
+    uint64_t intN = bytesToUnsignedInt64(bytes, numBytes);
+
+    return *(int64_t*)&intN;  // cast int memory to reinterpret data as a float
+}
+
+
 // given an array of bytes with the msb at index 0 and lsb and index
 // numBytes - 1, creates and returns floating point number
 float bytesToFloat(uint8_t bytes[], uint8_t numBytes) {
-    uint64_t intN = bytesTouint64(bytes, numBytes);
+    uint64_t intN = bytesToUnsignedInt64(bytes, numBytes);
 
     return *(float*)&intN;  // cast int memory to reinterpret data as a float
 }

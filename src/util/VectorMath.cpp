@@ -27,3 +27,12 @@ cartesian_vector cross_product(cartesian_vector v1, cartesian_vector v2) {
 double dot_product(cartesian_vector v1, cartesian_vector v2) {
     return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z);
 }
+
+
+double angleDiff_rad(double a1, double a2) {
+    double diff = a2 - a1;
+    if(diff > M_PI) diff -= 2 * M_PI;
+    else if(diff < -M_PI) diff += 2 * M_PI;
+    
+    return fabs(diff);
+}

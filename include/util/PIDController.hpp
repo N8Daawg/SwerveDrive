@@ -27,6 +27,7 @@ class PIDController {
 
     private:
         pidf_constants constants = {0, 0, 0, 0, 0, 0, -1, 1};
+        bool wrapAngle = false;
 
         double setpoint = 0;
         double integral = 0;
@@ -55,6 +56,22 @@ class PIDController {
         PIDController(pidf_constants newConstants);
 
 
+        // Sets new contants for the controller
+        //
+        // Params:
+        //    newConstants - the struct of new constants for the controller
+        // Return:
+        //    None
+        void setConstants(pidf_constants& newConstants) {constants = newConstants;}
+
+
+        // sets whether angle wrapping for PID controller is enabled. 
+        // If enabled, any error outside of [-pi, pi] will be scaled
+        // back to this range. NOTE: wrapping is based on error in
+        // units of radians, not degrees
+        void setWrapAngle(bool wrap) {wrapAngle = wrap;}
+
+
         // Sets a new setpoint for the controller
         //
         // Params:
@@ -62,6 +79,15 @@ class PIDController {
         // Return:
         //    None
         void newSetpoint(double sp);
+
+
+        // returns the current setpoint
+        //
+        // Params:
+        //    None
+        // Return:
+        //    double - the current setpoint
+        double getSetpoint() {return setpoint;}
 
 
         // runs the PID controller and returns the output of the controller

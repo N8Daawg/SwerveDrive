@@ -65,5 +65,9 @@ cartesian_vector cross_product(cartesian_vector v1, cartesian_vector v2);
 double dot_product(cartesian_vector v1, cartesian_vector v2);
 
 
+// Calculates the minimum difference between angles, does 
+// not preserve sign
+double angleDiff_rad(double a1, double a2);
+
 
 #endif
