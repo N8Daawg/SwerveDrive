@@ -202,27 +202,27 @@ int SparkMaxMC::setPeriodicRate(int frameNumber, uint16_t rate) {
 
 
 // (Duty Cycle Set) sets the target duty cycle
-int SparkMaxMC::dutyCycleSet(float percent) {
+int SparkMaxMC::dutyCycleSet(float percent, int slot /*0*/) {
     if(conn == NULL) return -1;
     if(percent > 1 || percent < -1) return -4;  // invalid parameters
 
     uint32_t canId = getCanFrameId(0, 2);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    getSetpointFrame(bytes, percent, 0, 0);
+    getSetpointFrame(bytes, percent, 0, slot);
 
     return conn->writeFrame(canId, bytes, 8);
 }
 
 
 // (Speed Set) sets the target velocity of the motor in RPM. 
-int SparkMaxMC::velocitySet(float targetRPM) {
+int SparkMaxMC::velocitySet(float targetRPM, int slot /*0*/) {
     if(conn == NULL) return -1;
 
     uint32_t canId = getCanFrameId(1, 2);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    getSetpointFrame(bytes, targetRPM, 0, 0);
+    getSetpointFrame(bytes, targetRPM, 0, slot);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -231,13 +231,13 @@ int SparkMaxMC::velocitySet(float targetRPM) {
 // (Smart Velocity Set) sets the target velocity of the motor in RPM. 
 // Honors the max acceleration and max velocity from smart motion 
 // parameters at the firmware level
-int SparkMaxMC::smartVelocitySet(float targetRPM) {
+int SparkMaxMC::smartVelocitySet(float targetRPM, int slot /*0*/) {
     if(conn == NULL) return -1;
 
     uint32_t canId = getCanFrameId(1, 3);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    getSetpointFrame(bytes, targetRPM, 0, 0);
+    getSetpointFrame(bytes, targetRPM, 0, slot);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -245,13 +245,13 @@ int SparkMaxMC::smartVelocitySet(float targetRPM) {
 
 // (Voltage Set) Sets the closed loop speed controller where the
 // target voltage is in volts  
-int SparkMaxMC::voltageSet(float targetVoltage) {
+int SparkMaxMC::voltageSet(float targetVoltage, int slot /*0*/) {
     if(conn == NULL) return -1;
 
     uint32_t canId = getCanFrameId(4, 2);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    getSetpointFrame(bytes, targetVoltage, 0, 0);
+    getSetpointFrame(bytes, targetVoltage, 0, slot);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -259,13 +259,13 @@ int SparkMaxMC::voltageSet(float targetVoltage) {
 
 // (Position Set) Sets the closed loop speed controller where the
 // target position is in rotations      
-int SparkMaxMC::absPositionSet(float targetRotations) {
+int SparkMaxMC::absPositionSet(float targetRotations, int slot /*0*/) {
     if(conn == NULL) return -1;
 
     uint32_t canId = getCanFrameId(3, 2);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    getSetpointFrame(bytes, targetRotations, 0, 0);
+    getSetpointFrame(bytes, targetRotations, 0, slot);
 
     return conn->writeFrame(canId, bytes, 8);
 }
@@ -273,20 +273,20 @@ int SparkMaxMC::absPositionSet(float targetRotations) {
 
 // (Smart Motion Set) Sets the closed loop smart motion 
 // controller where the target position is in rotations 
-int SparkMaxMC::smartAbsPositionSet(float targetRotations) {
+int SparkMaxMC::smartAbsPositionSet(float targetRotations, int slot /*0*/) {
     if(conn == NULL) return -1;
 
     uint32_t canId = getCanFrameId(5, 2);  // api class and api index
 
     uint8_t bytes[8];  // takes a 4 byte floating point number
-    getSetpointFrame(bytes, targetRotations, 0, 0);
+    getSetpointFrame(bytes, targetRotations, 0, slot);
 
     return conn->writeFrame(canId, bytes, 8);
 }
 
 
 // calculates where to move to and then moves there
-int SparkMaxMC::moveToAngle(float angle_rad, bool smart /*true*/) {
+int SparkMaxMC::moveToAngle(float angle_rad, bool smart /*true*/, int slot /*0*/) {
     float currentPosition = getPosition();
     int numRevolutions = (int)currentPosition;
 
@@ -294,8 +294,6 @@ int SparkMaxMC::moveToAngle(float angle_rad, bool smart /*true*/) {
     float diffAngle = angle_rad - currentAngle;
 
     float desiredPosition = numRevolutions + (diffAngle / (2 * M_PI)) + encoderOffset;
-    //std::cout << currentPosition << " " << numRevolutions << " " << currentAngle << " " << diffAngle << " " << _internalEncoderPosition << " " << encoderOffset << " " << std::flush;
-    //std::cout << desiredPosition << "\n";
 
     if(smart) {
         return smartAbsPositionSet(desiredPosition);
@@ -401,7 +399,7 @@ int SparkMaxMC::setIdleMode(uint8_t newIdleMode) {
 
 
 // makes parameter update call to set the encoder mode
-int SparkMaxMC::setEncoderMode(bool alternate) {
+int SparkMaxMC::setAltEncoderMode(bool alternate) {
     uint8_t useAlt = 0;
     if(alternate) useAlt = 1;
 

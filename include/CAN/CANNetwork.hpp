@@ -1,9 +1,10 @@
 // CANNetwork.hpp
 // Contains code for maintaining a CAN Network in the frc style where
-// a heartbeat signal is sent within a minimum period of 100ms. Different
+// a heartbeat signal is sent within a maximum period of 100ms. Different
 // can devices are added to this network and data is sent to each of these
 // instances. Each CANDevice handles its own data sending and data parsing,
-// but this network handles the heartbeat and distribution of frames
+// but this network handles the heartbeat and distribution of frames for
+// each device to parse. Only periodic frames are distributed
 //
 // Author: Aiden Carney
 

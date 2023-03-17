@@ -22,8 +22,8 @@ void CANNetwork::_mainloop() {
     int lastHeartbeat = 0;  // set to 0 so that heartbeat is run immediately
 
     while(true) {
-        // write the heartbeat every 4 periods so that too much traffic isn't generated
-        if(lastHeartbeat % 5 == 0) {
+        // write the heartbeat every 40 periods so that too much traffic isn't generated
+        if(lastHeartbeat % 40 == 0) {
             conn->writeFrame(id, heartbeatBytes, 8);
         }
         lastHeartbeat++;

@@ -227,7 +227,7 @@ class SparkMaxMC : public CANDevice {
         bool encoderIsReversed;  // if the encoder is reversed
         float encoderOffset;     // used for zeroing the encoder (either for internal or alternate
                                  // encoder based on which encoder mode is on)
-        float gearRatio;         // multiplied by position and velocity so they correspond to the output
+        float gearRatio = 1.0;   // multiplied by position and velocity so they correspond to the output
                                  // of the mechanism and not the motor
 
 
@@ -333,18 +333,20 @@ class SparkMaxMC : public CANDevice {
         //
         // Params:
         //    percent - value between [-1, 1] corresponding to the requested duty cycle
+        //    slot    - the PID slot to use
         // Return:
         //    int - if the command was sent successfully
-        int dutyCycleSet(float percent);
+        int dutyCycleSet(float percent, int slot=0);
 
 
         // (Speed Set) sets the target velocity of the motor in RPM. 
         //
         // Params:
         //    targetRPM - the new target speed in RPM
+        //    slot    - the PID slot to use
         // Return:
         //    int - if the command was sent successfully
-        int velocitySet(float targetRPM);
+        int velocitySet(float targetRPM, int slot=0);
 
 
         // (Smart Velocity Set) sets the target velocity of the motor in RPM. 
@@ -353,9 +355,10 @@ class SparkMaxMC : public CANDevice {
         //
         // Params:
         //    targetRPM - the new target speed in RPM
+        //    slot    - the PID slot to use
         // Return:
         //    int - if the command was sent successfully
-        int smartVelocitySet(float targetRPM);
+        int smartVelocitySet(float targetRPM, int slot=0);
 
 
         // (Voltage Set) Sets the closed loop speed controller where the
@@ -363,9 +366,10 @@ class SparkMaxMC : public CANDevice {
         //
         // Params:
         //    targetVoltage: - the target voltage in units of volts
+        //    slot    - the PID slot to use
         // Return:
         //    int - if the command was sent successfully     
-        int voltageSet(float targetVoltage);
+        int voltageSet(float targetVoltage, int slot=0);
 
 
         // (Position Set) Sets the closed loop speed controller where the
@@ -376,9 +380,10 @@ class SparkMaxMC : public CANDevice {
         //
         // Params:
         //    targetRotations: - the target position in units of rotations
+        //    slot    - the PID slot to use
         // Return:
         //    int - if the command was sent successfully       
-        int absPositionSet(float targetRotations);
+        int absPositionSet(float targetRotations, int slot=0);
 
 
         // (Smart Motion Set) Sets the closed loop smart motion controller 
@@ -389,9 +394,10 @@ class SparkMaxMC : public CANDevice {
         //
         // Params:
         //    targetRotations: - the target position in rotations
+        //    slot    - the PID slot to use
         // Return:
         //    int - if the command was sent successfully  
-        int smartAbsPositionSet(float targetRotations);
+        int smartAbsPositionSet(float targetRotations, int slot=0);
 
 
         // moves to an angle based on the current motor position. Uses one 
@@ -403,9 +409,10 @@ class SparkMaxMC : public CANDevice {
         // Params:
         //    angle_rad - the angle to move to in radians
         //    smart     - use the smart motion function that respects ramp rates or not
+        //    slot    - the PID slot to use
         // Return:
         //    int - if the command was sent successfully  
-        int moveToAngle(float angle_rad, bool smart=true);
+        int moveToAngle(float angle_rad, bool smart=true, int slot=0);
 
 
 
@@ -484,7 +491,7 @@ class SparkMaxMC : public CANDevice {
         //    alternate - if the encoder mode should be alternate or internal
         // Return:
         //    int - if the command was sent successfully
-        int setEncoderMode(bool alternate);
+        int setAltEncoderMode(bool alternate);
 
 
         // Sets a scalar to be multiplied by all data coming from the encoder (velocity, position,

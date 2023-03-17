@@ -8,6 +8,7 @@
 #include "CAN/SparkMaxMC.hpp"
 #include "CAN/can_utils.hpp"
 #include "Drive/SwerveModule.hpp"
+#include "Drive/SwerveController.hpp"
 
 
 void sleep(int millis) {
@@ -15,7 +16,7 @@ void sleep(int millis) {
 }
 
 
-int main() {    
+int main() {        
     CANConnection canConnection("can0");
 
     SparkMaxMC motor1(canConnection, 1);
@@ -48,8 +49,11 @@ int main() {
     motor2.tareEncoder();
 
     SwerveModule s1(motor1, motor2);
-    s1.updateMountLocation(-0.5, 0.5);
+    s1.setMountLocation(-0.5, 0.5);
+    s1.setUsePWM(true);
     //s1.moveRobotCentric(0, 1, 0);
+
+
 
 
     while(1) {
@@ -57,7 +61,7 @@ int main() {
         //motor1.identify();
         //motor2.printFaults(motor2.getFaults());
         //std::cout << '\r' << std::left << std::setw(20) << motor2.getAppliedOutput() << std::flush;
-        std::this_thread::sleep_for(std::chrono::milliseconds(2)); // sleep for 5 seconds before identifying again
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 
     return 0;
