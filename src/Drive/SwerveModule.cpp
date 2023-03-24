@@ -90,5 +90,17 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
 
 // wrapper for moveToTarget
 void SwerveModule::moveRobotCentric(double inputX, double inputY, double w, double thetaOffset_rad) {
-    moveToTarget(inputX, inputY, w, thetaOffset_rad);
+     // Set motion to 0 if inputs are all 0, otherwise it will still rotate wheels to 0 position
+     // rather than not doing any motion
+    if(inputX == 0 and inputY == 0 and w==0) { 
+        if(usePWM) {
+            driveMotor->dutyCycleSet(0);
+            pivotMotor->dutyCycleSet(0);
+        } else {
+            driveMotor->velocitySet(0);
+            pivotMotor->velocitySet(0);
+        }
+    } else {
+        moveToTarget(inputX, inputY, w, thetaOffset_rad);
+    }
 }

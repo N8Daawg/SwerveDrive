@@ -608,6 +608,17 @@ class SparkMaxMC : public CANDevice {
         void tareEncoder();
 
 
+        // Sets the tare position of the encoder to a custom value rather 
+        // than the current position. This is useful for restoring a
+        // previous state
+        //
+        // Params:
+        //    newOffset - the new tare position in rotations
+        // Return:
+        //    None
+        void setTarePosition(float newOffset) {encoderOffset = newOffset;}
+
+
         // Gets the current velocity of the encoder (either alternate or internal
         // based on the mode) in RPM
         //
@@ -780,6 +791,13 @@ class SparkMaxMC : public CANDevice {
         float getEncoderOffset() {return encoderOffset;}
 
 
+        // returns the current gear ratio being used with the encoders
+        //
+        // Params:
+        //    None
+        // Return:
+        //    float - the current gear ratio
+        float getGearRatio() {return gearRatio;}
 
 
         /*****************************************************************************************/

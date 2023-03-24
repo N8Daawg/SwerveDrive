@@ -306,9 +306,8 @@ int getButtonValue(int buttonNumber, short * value) {
     return 0;
 }
 
-/*
- * MODULE TEST
-int main(void) {
+
+void joystickDebug() {
 
     short testvalue = 2000;
 
@@ -330,5 +329,4 @@ int main(void) {
 
     endDeviceConnection();
 
-    return 0;
-} */
+} 

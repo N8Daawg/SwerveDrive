@@ -1,3 +1,6 @@
+#include <fstream>
+#include <string>
+
 #include "CAN/SparkMaxMC.hpp"
 #include "Drive/SwerveController.hpp"
 #include "Drive/SwerveModule.hpp"
@@ -77,10 +80,10 @@ SwerveController::SwerveController(
     sePivot->setGearRatio(1.0);
     swPivot->setGearRatio(1.0);
 
-    nePivot->setTicksPerEncoderRevolution(42);
-    nwPivot->setTicksPerEncoderRevolution(42);
-    sePivot->setTicksPerEncoderRevolution(42);
-    swPivot->setTicksPerEncoderRevolution(42);
+    nePivot->setTicksPerEncoderRevolution(4096);
+    nwPivot->setTicksPerEncoderRevolution(4096);
+    sePivot->setTicksPerEncoderRevolution(4096);
+    swPivot->setTicksPerEncoderRevolution(4096);
 
     nePivot->setPIDF(1, 0, 0, 0);
     nwPivot->setPIDF(1, 0, 0, 0);
@@ -88,7 +91,7 @@ SwerveController::SwerveController(
     swPivot->setPIDF(1, 0, 0, 0);
     
 
-    // burn flash
+    // burn flash to save settings to motor controller in case of brown out
     for(SparkMaxMC* motor : {neDrive, nePivot, nwDrive, nwPivot, seDrive, sePivot, swDrive, swPivot}) {
         motor->burnFlash();
     }
@@ -120,6 +123,80 @@ SwerveController::SwerveController(
     nw = &nwModule;
     se = &seModule;
     sw = &swModule;
+}
+
+
+// reads in a file
+int SwerveController::importCalibration(const char calibrationConfigFile[255]) {
+    std::ifstream file;           
+    file.open(calibrationConfigFile); 
+
+    std::string setting, op;
+    float value;
+
+    if(file.is_open()) {
+
+        while(file >> setting >> op >> value) {
+            if(setting == "neTare") {
+                nePivot->setTarePosition(value);
+            } else if(setting == "nwTare") {
+                nwPivot->setTarePosition(value);
+            } else if(setting == "seTare") {
+                sePivot->setTarePosition(value);
+            } else if(setting == "swTare") {
+                swPivot->setTarePosition(value);
+            }
+        }
+
+        file.close();
+
+        return 0;
+    } 
+
+    return -1;
+}
+
+
+// samples every millisecond to take an average
+int SwerveController::calibrate(const char calibrationConfigFile[255], float calibrationTime_ms) {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point end = begin;
+
+    int samples = 1;
+    float nePivotSum = nePivot->getPosition();
+    float nwPivotSum = nePivot->getPosition();
+    float sePivotSum = sePivot->getPosition();
+    float swPivotSum = swPivot->getPosition();
+
+    while(std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() < calibrationTime_ms) {
+        nePivotSum += nePivot->getPosition();
+        nwPivotSum += nePivot->getPosition();
+        sePivotSum += sePivot->getPosition();
+        swPivotSum += swPivot->getPosition();
+
+        samples++;
+        std::this_thread::sleep_for(std::chrono::microseconds(1000)); // wait for a bit before re-trying
+        end = std::chrono::steady_clock::now();
+    }
+
+    float neTare = ((nePivotSum / samples) / nePivot->getGearRatio()) + nePivot->getEncoderOffset();
+    float nwTare = ((nwPivotSum / samples) / nwPivot->getGearRatio()) + nwPivot->getEncoderOffset();
+    float seTare = ((sePivotSum / samples) / sePivot->getGearRatio()) + sePivot->getEncoderOffset();
+    float swTare = ((swPivotSum / samples) / swPivot->getGearRatio()) + swPivot->getEncoderOffset();
+
+
+    std::ofstream file(calibrationConfigFile);
+    if(file.is_open()) {
+        file << "neTare = " << neTare << "\n";
+        file << "neTare = " << neTare << "\n";
+        file << "seTare = " << seTare << "\n";
+        file << "swTare = " << seTare << "\n";
+
+        file.close();
+        return 0;
+    } else {
+        return -1;
+    }
 }
 
 

@@ -36,6 +36,28 @@ class SwerveController {
         );
 
 
+        // Calibrates the swerve modules to a known offset based on
+        // a given configuration file
+        //
+        // Params:
+        //    calibrationConfigFile - the file to read the calibration from
+        // Return:
+        //    int - 0 on success, -1 on failure to read
+        int importCalibration(const char calibrationConfigFile[255]);
+
+
+        // Sets the current positions of the robot as the calibration configuration
+        // to be saved to a new file. Uses an average of the sensor values over a
+        // period of time to ensure best results
+        //
+        // Params:
+        //    calibrationConfigFile - the file to read the calibration from
+        //    calibrationTime_ms    - how long to average sensor values for in ms
+        // Return:
+        //    int - 0 on success, -1 on failure to write
+        int calibrate(const char calibrationConfigFile[255], float calibrationTime);
+
+
         // Sets the sensitivity of the input. This is a simple constant multiplied
         // to the output of the velocity controller for the drive motors
         //

@@ -82,3 +82,9 @@ int getButtonValue(int buttonNumber, short * value);
  * Returns 0 on failure. Otherwise success.
  */
 int setCalibrationCoefficients(int a,int b,int c,int d,int t,int prec);
+
+
+/**
+ * Runs a test sequence to read values from all the axes
+*/
+void joystickDebug();
