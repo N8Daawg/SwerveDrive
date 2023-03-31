@@ -26,6 +26,7 @@ class CANNetwork {
 
         std::thread t;   // the thread where data is distributed to be parsed
         bool runThread;  // if the mainloop should be running or not
+        bool runHearbeat;
 
 
         // Contains the loop that runs on a thread and sends heartbeat signals and 
@@ -74,6 +75,23 @@ class CANNetwork {
         // Return:
         //    None
         void startReading() {runThread = true;}
+
+
+        // Stops the heartbeat from being sent by clearing the flag
+        // 
+        // Params:
+        //    None
+        // Return:
+        //    None
+        void stopHeartbeat() {runHearbeat = false;}
+
+        // Starts the hearbeat being sent by setting the flag
+        // 
+        // Params:
+        //    None
+        // Return:
+        //    None
+        void startHearbeat() {runHearbeat = true;}
 
 
         // Adds a new device to the list of registered devices

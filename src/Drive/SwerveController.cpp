@@ -1,9 +1,11 @@
 #include <fstream>
 #include <string>
+#include <iostream>
 
 #include "CAN/SparkMaxMC.hpp"
 #include "Drive/SwerveController.hpp"
 #include "Drive/SwerveModule.hpp"
+#include "util/misc.hpp"
 
 
 SwerveController::SwerveController(
@@ -14,7 +16,8 @@ SwerveController::SwerveController(
     SparkMaxMC& seDriveMotor,
     SparkMaxMC& sePivotMotor,
     SparkMaxMC& swDriveMotor,
-    SparkMaxMC& swPivotMotor
+    SparkMaxMC& swPivotMotor,
+    bool useAltEncoder /* true */
 ) {
     neDrive = &neDriveMotor;
     nePivot = &nePivotMotor;
@@ -38,10 +41,10 @@ SwerveController::SwerveController(
     }
 
     // configure drive motors
-    neDrive->setMotorReversed(false);
-    nwDrive->setMotorReversed(false);
-    seDrive->setMotorReversed(false);
-    swDrive->setMotorReversed(false);
+    neDrive->setMotorReversed(true);
+    nwDrive->setMotorReversed(true);
+    seDrive->setMotorReversed(true);
+    swDrive->setMotorReversed(true);
 
     neDrive->setGearRatio(1/5.25);
     nwDrive->setGearRatio(1/5.25);
@@ -65,25 +68,29 @@ SwerveController::SwerveController(
     sePivot->setMotorReversed(false);
     swPivot->setMotorReversed(false);
 
-    nePivot->setAltEncoderMode(true);
-    nwPivot->setAltEncoderMode(true);
-    sePivot->setAltEncoderMode(true);
-    swPivot->setAltEncoderMode(true);
+    nePivot->setAltEncoderMode(useAltEncoder);
+    nwPivot->setAltEncoderMode(useAltEncoder);
+    sePivot->setAltEncoderMode(useAltEncoder);
+    swPivot->setAltEncoderMode(useAltEncoder);
 
-    nePivot->setAltEncoderReversed(false);
-    nwPivot->setAltEncoderReversed(false);
-    sePivot->setAltEncoderReversed(false);
-    swPivot->setAltEncoderReversed(false);
 
-    nePivot->setGearRatio(1.0);
-    nwPivot->setGearRatio(1.0);
-    sePivot->setGearRatio(1.0);
-    swPivot->setGearRatio(1.0);
+    nePivot->setAltEncoderReversed(true);
+    nwPivot->setAltEncoderReversed(true);
+    sePivot->setAltEncoderReversed(true);
+    swPivot->setAltEncoderReversed(true);
 
-    nePivot->setTicksPerEncoderRevolution(4096);
-    nwPivot->setTicksPerEncoderRevolution(4096);
-    sePivot->setTicksPerEncoderRevolution(4096);
-    swPivot->setTicksPerEncoderRevolution(4096);
+
+    double ratio = useAltEncoder ? 1 : (1/(5.3333333 * 10));
+    nePivot->setGearRatio(ratio);
+    nwPivot->setGearRatio(ratio);
+    sePivot->setGearRatio(ratio);
+    swPivot->setGearRatio(ratio);
+
+    int ticks = useAltEncoder ? 4096 : 42;
+    nePivot->setTicksPerEncoderRevolution(ticks);
+    nwPivot->setTicksPerEncoderRevolution(ticks);
+    sePivot->setTicksPerEncoderRevolution(ticks);
+    swPivot->setTicksPerEncoderRevolution(ticks);
 
     nePivot->setPIDF(1, 0, 0, 0);
     nwPivot->setPIDF(1, 0, 0, 0);
@@ -97,32 +104,35 @@ SwerveController::SwerveController(
     }
 
 
-
     // configure swerve modules
-    SwerveModule neModule(*neDrive, *nePivot);
-    SwerveModule nwModule(*nwDrive, *nwPivot);
-    SwerveModule seModule(*seDrive, *sePivot);
-    SwerveModule swModule(*swDrive, *swPivot);
+    ne = new SwerveModule(*neDrive, *nePivot);
+    nw = new SwerveModule(*nwDrive, *nwPivot);
+    se = new SwerveModule(*seDrive, *sePivot);
+    sw = new SwerveModule(*swDrive, *swPivot);
 
-    neModule.setUsePWM(true);
-    nwModule.setUsePWM(true);
-    seModule.setUsePWM(true);
-    swModule.setUsePWM(true);
+    ne->setUsePWM(true);
+    nw->setUsePWM(true);
+    se->setUsePWM(true);
+    sw->setUsePWM(true);
 
-    neModule.setMountLocation(0.25, 0.25);
-    nwModule.setMountLocation(-0.25, 0.25);
-    seModule.setMountLocation(0.25, -0.25);
-    swModule.setMountLocation(-0.25, -0.25);
+    ne->setMountLocation(0.25, 0.25);
+    nw->setMountLocation(-0.25, 0.25);
+    se->setMountLocation(0.25, -0.25);
+    sw->setMountLocation(-0.25, -0.25);
 
-    neModule.setPIDConstants({2.3, 0, 0, 0, 0, 0, -1, 1});
-    nwModule.setPIDConstants({2.3, 0, 0, 0, 0, 0, -1, 1});
-    seModule.setPIDConstants({2.3, 0, 0, 0, 0, 0, -1, 1});
-    swModule.setPIDConstants({2.3, 0, 0, 0, 0, 0, -1, 1});
+    ne->setPIDConstants({2.3, 0, 0, 0, 0, 0, -1, 1});
+    nw->setPIDConstants({2.3, 0, 0, 0, 0, 0, -1, 1});
+    se->setPIDConstants({2.3, 0, 0, 0, 0, 0, -1, 1});
+    sw->setPIDConstants({2.3, 0, 0, 0, 0, 0, -1, 1});
+}
 
-    ne = &neModule;
-    nw = &nwModule;
-    se = &seModule;
-    sw = &swModule;
+
+// frees memeory
+SwerveController::~SwerveController() {
+    delete ne;
+    delete nw;
+    delete se;
+    delete sw;
 }
 
 
@@ -158,24 +168,24 @@ int SwerveController::importCalibration(const char calibrationConfigFile[255]) {
 
 
 // samples every millisecond to take an average
-int SwerveController::calibrate(const char calibrationConfigFile[255], float calibrationTime_ms) {
+int SwerveController::calibrate(const char calibrationConfigFile[255], int calibrationTime_ms) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point end = begin;
 
     int samples = 1;
     float nePivotSum = nePivot->getPosition();
-    float nwPivotSum = nePivot->getPosition();
+    float nwPivotSum = nwPivot->getPosition();
     float sePivotSum = sePivot->getPosition();
     float swPivotSum = swPivot->getPosition();
 
     while(std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() < calibrationTime_ms) {
         nePivotSum += nePivot->getPosition();
-        nwPivotSum += nePivot->getPosition();
+        nwPivotSum += nwPivot->getPosition();
         sePivotSum += sePivot->getPosition();
         swPivotSum += swPivot->getPosition();
 
         samples++;
-        std::this_thread::sleep_for(std::chrono::microseconds(1000)); // wait for a bit before re-trying
+        sleep(1000);  // sleep for 1 ms
         end = std::chrono::steady_clock::now();
     }
 
@@ -188,9 +198,9 @@ int SwerveController::calibrate(const char calibrationConfigFile[255], float cal
     std::ofstream file(calibrationConfigFile);
     if(file.is_open()) {
         file << "neTare = " << neTare << "\n";
-        file << "neTare = " << neTare << "\n";
+        file << "nwTare = " << nwTare << "\n";
         file << "seTare = " << seTare << "\n";
-        file << "swTare = " << seTare << "\n";
+        file << "swTare = " << swTare << "\n";
 
         file.close();
         return 0;
@@ -213,10 +223,10 @@ void SwerveController::setSensitivity(int s) {
 void SwerveController::move(double inputX, double inputY, double w) {
     switch(mode) {
         case robot_centric: {
-            ne->moveRobotCentric(inputX, inputY, w, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
+            // ne->moveRobotCentric(inputX, inputY, w, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
             nw->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
-            se->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
-            sw->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
+            // se->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
+            // sw->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
             break;
         }
         case field_centric: {

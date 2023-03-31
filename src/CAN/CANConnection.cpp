@@ -13,6 +13,7 @@
 //#include <iostream>
 
 #include "CAN/CANConnection.hpp"
+#include "util/misc.hpp"
 
 
 // Sets the connection open flag to false
@@ -75,11 +76,23 @@ void CANConnection::_readThread() {
 // will show it, but execution will continue. Opens socket with the
 // no-block flag so that any read operations will return immediately
 int CANConnection::openConnection(const char* interface_name) {
-    if ((sockfd = socket(PF_CAN, SOCK_RAW | SOCK_NONBLOCK, CAN_RAW)) < 0) {  // might be AF_CAN
+    if ((sockfd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {  // might be AF_CAN
        perror("Socket Failed");
        connOpen = false;
 
        return -1;
+    }
+
+    struct timeval timeout;      
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 5000;  // 5ms max delay for messages
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout) < 0) {
+        perror("setsockopt failed\n");
+    }
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof timeout) < 0) {
+        perror("setsockopt failed\n");
     }
 
     struct ifreq ifr;
@@ -127,7 +140,7 @@ int CANConnection::writeFrame(uint32_t canId, uint8_t data[], int nBytes) {
 
     const std::lock_guard<std::mutex> lock(connMutex);  // grab the mutex and send the data on its way
     if (write(sockfd, &frame, sizeof(struct can_frame)) != sizeof(struct can_frame)) {
-        perror("Failed to write");
+        perror("CAN Failed to write: ");
         return -2;
     }
 

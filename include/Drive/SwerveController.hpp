@@ -32,8 +32,18 @@ class SwerveController {
             SparkMaxMC& seDriveMotor,
             SparkMaxMC& sePivotMotor,
             SparkMaxMC& swDriveMotor,
-            SparkMaxMC& swPivotMotor
+            SparkMaxMC& swPivotMotor,
+            bool useAltEncoder=true
         );
+
+
+        // dtor - frees memory allocated for swerve modules
+        //
+        // Params:
+        //    None
+        // Return:
+        //    None
+        ~SwerveController();
 
 
         // Calibrates the swerve modules to a known offset based on
@@ -55,7 +65,7 @@ class SwerveController {
         //    calibrationTime_ms    - how long to average sensor values for in ms
         // Return:
         //    int - 0 on success, -1 on failure to write
-        int calibrate(const char calibrationConfigFile[255], float calibrationTime);
+        int calibrate(const char calibrationConfigFile[255], int calibrationTime);
 
 
         // Sets the sensitivity of the input. This is a simple constant multiplied

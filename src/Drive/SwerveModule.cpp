@@ -76,7 +76,7 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
 
     double pivotV = controller.step(currentAngle_rad);
 
-    //std::cout << "Target Vx: " << targetVx << "    Target Vy: " << targetVy << "    Target angle: " << targetAngle_rad << "    pivotV " << pivotV << "\n";
+    // std::cout << "Target Vx: " << targetVx << "    Target Vy: " << targetVy << "    Target angle: " << targetAngle_rad << "    pivotV " << pivotV << "\n";
 
     if(usePWM) {
         driveMotor->dutyCycleSet(driveV);
@@ -92,7 +92,7 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
 void SwerveModule::moveRobotCentric(double inputX, double inputY, double w, double thetaOffset_rad) {
      // Set motion to 0 if inputs are all 0, otherwise it will still rotate wheels to 0 position
      // rather than not doing any motion
-    if(inputX == 0 and inputY == 0 and w==0) { 
+    if(inputX == 0 && inputY == 0 && w==0) { 
         if(usePWM) {
             driveMotor->dutyCycleSet(0);
             pivotMotor->dutyCycleSet(0);

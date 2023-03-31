@@ -51,7 +51,7 @@ void SparkMaxMC::getSetpointFrame(uint8_t bytes[8], float setpoint, int16_t arbF
     floatToBytes(setpoint, bytes, 4);            // fill first 4 bytes with the setpoint
     
     uint8_t arbFFBytes[2];
-    memset(arbFFBytes, 0, 8 * sizeof(uint8_t));
+    memset(arbFFBytes, 0, 2 * sizeof(uint8_t));
     int64ToBytes(arbFF, arbFFBytes, 2);
     bytes[4] = arbFFBytes[0];                    // next 2 bytes are arbFF
     bytes[5] = arbFFBytes[1];
@@ -591,8 +591,9 @@ float SparkMaxMC::getAbsPosition() {
 
 // calculates the current angle
 float SparkMaxMC::getAngle_rad() {
-    float revolution = getPosition() - (int)getPosition();  // get the decimal number of revolutions (ignore number of times around)
-    return revolution * 2 * M_PI; // angle = revolutions * 2pi rad/revolution
+    float position = getPosition();
+    float revolution = position - (int)position;  // get the decimal number of revolutions (ignore number of times around)
+    return revolution * 2 * M_PI;                 // angle = revolutions * 2pi rad/revolution
 }
 
 

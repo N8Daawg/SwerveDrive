@@ -7,6 +7,7 @@ CANNetwork::CANNetwork(CANConnection& newConn) {
     conn = &newConn;
     t = std::thread(&CANNetwork::_mainloop, this);
     runThread = true;
+    runHearbeat = false;
 }
 
 
@@ -23,7 +24,7 @@ void CANNetwork::_mainloop() {
 
     while(true) {
         // write the heartbeat every 40 periods so that too much traffic isn't generated
-        if(lastHeartbeat % 40 == 0) {
+        if(lastHeartbeat % 40 == 0 && runHearbeat) {
             conn->writeFrame(id, heartbeatBytes, 8);
         }
         lastHeartbeat++;
