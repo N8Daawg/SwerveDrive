@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 #include "CAN/CANNetwork.hpp"
 #include "CAN/CANConnection.hpp"
@@ -14,41 +15,27 @@
 
 
 int main() {        
-    // char* jsSource = "/dev/input/js0";
-    // if (!startDeviceConnection(jsSource)) {
-    //     printf("ERROR: joystick could not be initialized.\n");
-    //     return 0;
-    // }
+    // Set up the joystick
+    char* jsSource = "/dev/input/js0";
+    bool joystickConnected = false;
 
-
-    // short axis1 = 0;
-    // short axis2 = 0;
-    // short axis3 = 0;
-    // short axis4 = 0;
-
-    // for(int i = 0; i < 10000; i++) {
-    //     getAxisValue(0, &axis1);
-    //     getAxisValue(0, &axis2);
-    //     getAxisValue(0, &axis3);
-    //     getAxisValue(0, &axis4);
-    //     std::cout << axis1 << " " << axis2 << " " << axis3 << " " << axis4 << "\n";
-    //     sleep(1);
-    // }
-
-
-
-    // if (!startDeviceConnection("/dev/input/js0")) exit(1);
-    // printJoystickInformation();
+    if (!startDeviceConnection(jsSource)) {
+        printf("ERROR: joystick could not be initialized.\n");
+    } else {
+        printJoystickInformation();
+        joystickConnected = true;
+    }
 
     setCalibrationCoefficients(0, 0, 0, 0, 0, 255);
 
 
+    // open the can connection
     CANConnection canConnection("can0");
 
 
     /*********************************************************************/
     /*                                                                   */
-    /*                    Full Drive Section                             */
+    /*                        Swerve Drive Init                          */
     /*                                                                   */
     /*********************************************************************/
 
@@ -61,7 +48,7 @@ int main() {
     SparkMaxMC swDrive(canConnection, 7);
     SparkMaxMC swPivot(canConnection, 8);
 
-    CANNetwork canNetwork(canConnection);  // start the heartbeat signal
+    CANNetwork canNetwork(canConnection);
     canNetwork.addDevice(neDrive);
     canNetwork.addDevice(nePivot);
     canNetwork.addDevice(nwDrive);
@@ -75,10 +62,14 @@ int main() {
 
     canNetwork.startHearbeat();
 
+    drive.importCalibration("config.txt");
+    drive.setSensitivity(0.3);
+    std::cout << "Calibration Set\n";
+
 
     /*********************************************************************/
     /*                                                                   */
-    /*                    2 Motor Debug Section                          */
+    /*                Single Module Debug Section                        */
     /*                                                                   */
     /*********************************************************************/
 
@@ -125,27 +116,46 @@ int main() {
     // std::cout << "Starting calibration\n";
     // drive.calibrate("config.txt", 1000);
     // std::cout << "Calibration finished\n";
-    drive.importCalibration("config.txt");
-    drive.setSensitivity(0.3);
-    std::cout << "Calibration Set\n";
 
 
+    short lx = 127;  // joystick values
+    short ly = 127;
+    short rx = 127;
+    short ry = 127;
     while(1) {
-        // handleJoystickEvents();
-
-        short lx = 0;
-        short ly = 0;
-        short rx = 0;
-        short ry = 0;
-        // getAxisValue(0, &lx);
-        // getAxisValue(1, &ly);
-        // getAxisValue(3, &rx);
-        // getAxisValue(4, &ry);
+        std::ifstream file(jsSource);  // make sure joystick is still connected
+        if(file.good()) {
+            file.close();
+        } else {
+            joystickConnected = false;
+        }
 
 
-        double x = (lx - 127) / 127.0;
-        double y = (ly - 127) / -127.0;  // axis is reversed, multiply by -1
-        double w = (rx - 127) / 127.0;
+        if(joystickConnected) {
+            handleJoystickEvents();
+            getAxisValue(0, &lx);
+            getAxisValue(1, &ly);
+            getAxisValue(3, &rx);
+            getAxisValue(4, &ry);
+
+            double x = (lx - 127) / 127.0;
+            double y = (ly - 127) / -127.0;  // axis is reversed, multiply by -1
+            double w = (rx - 127) / 127.0;
+
+            drive.move(x, y, w);
+
+        } else {
+            drive.move(0, 0, 0);  // shut off drive
+
+            // attempt to reconnect to joystick
+            if (startDeviceConnection(jsSource)) {
+                std::cout << "Joystick re-connected\n";
+                printJoystickInformation();
+                joystickConnected = true;
+            }
+
+        }
+
 
         //std::cout << "lx: " << lx << " ly: " << ly << " rx: " << rx << " ry: " << ry << "\n";
         // std::cout << "x: " << x << " y: " << y << " w: " << w << "\n";
@@ -153,22 +163,10 @@ int main() {
         // s1.moveRobotCentric(x, y, w, -M_PI / 2);
         // s1.moveRobotCentric(0, 0.5, 0, -M_PI / 2);
 
-        // drive.move(x, y, w);
-        drive.move(0, 0.5, 0);
 
         sleep(5000);
     }
 
-
-
-
-    // while(1) {
-    //     s1.moveRobotCentric(1, 0, 0, -M_PI / 2);
-    //     //motor1.identify();
-    //     //motor2.printFaults(motor2.getFaults());
-    //     //std::cout << '\r' << std::left << std::setw(20) << motor2.getAppliedOutput() << std::flush;
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    // }
 
     return 0;
 }

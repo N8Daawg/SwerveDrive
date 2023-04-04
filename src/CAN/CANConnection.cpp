@@ -124,6 +124,9 @@ int CANConnection::openConnection(const char* interface_name) {
 
 // Aquires the mutex in an exception safe way and writes
 // a command to the can bus if it is properly set up
+// Make sure "canX" txqueuelen is set to be greater than 10.
+// 1000 is a good number. This ensures that no fails to write
+// due to lack of buffer space will occur
 int CANConnection::writeFrame(uint32_t canId, uint8_t data[], int nBytes) {
     if(!connOpen) return -1;  // make sure connection is opened properly
     if(nBytes < 0 || nBytes > PACKET_LENGTH) return -4;  // only accept valid packet sizes
