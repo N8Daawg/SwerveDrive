@@ -223,10 +223,10 @@ void SwerveController::setSensitivity(int s) {
 void SwerveController::move(double inputX, double inputY, double w) {
     switch(mode) {
         case robot_centric: {
-            // ne->moveRobotCentric(inputX, inputY, w, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
+            ne->moveRobotCentric(inputX, inputY, w, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
             nw->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
-            // se->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
-            // sw->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
+            se->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
+            sw->moveRobotCentric(inputX, inputY, w, -M_PI / 2);
             break;
         }
         case field_centric: {
