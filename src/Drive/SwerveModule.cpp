@@ -87,6 +87,25 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
     }
 }
 
+void SwerveModule::moveToTarget2(cartesian_vector v, double thetaOffset_rad){
+    //some method to turn the motor towards the given vector.
+}
+
+void SwerveModule::moveRobotCentric2(cartesian_vector v, double thetaOffset_rad){
+         // Set motion to 0 if inputs are all 0, otherwise it will still rotate wheels to 0 position
+     // rather than not doing any motion
+    if(inputX == 0 && inputY == 0 && w==0) { 
+        if(usePWM) {
+            driveMotor->dutyCycleSet(0);
+            pivotMotor->dutyCycleSet(0);
+        } else {
+            driveMotor->velocitySet(0);
+            pivotMotor->velocitySet(0);
+        }
+    } else {
+        moveToTarget(inputX, inputY, w, thetaOffset_rad);
+    }
+}
 
 // wrapper for moveToTarget
 void SwerveModule::moveRobotCentric(double inputX, double inputY, double w, double thetaOffset_rad) {

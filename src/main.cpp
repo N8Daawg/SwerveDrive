@@ -14,6 +14,8 @@
 #include "util/misc.hpp"
 
 
+double robotWidth = 12;
+double robotLength = robotWidth;
 int main() {        
     // Set up the joystick
     char* jsSource = "/dev/input/js0";
