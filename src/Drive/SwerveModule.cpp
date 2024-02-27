@@ -37,6 +37,7 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
     scale(turnContrib.x, -1.0, 1.0, -yPos_m, yPos_m);
     scale(turnContrib.y, -1.0, 1.0, -xPos_m, xPos_m);
 
+    //creation of the target vector!!!!
     cartesian_vector target = add_vectors(strafeContrib, turnContrib);  // add the contributions
 
     // ensure target vector has a maximum magnitude of 1, if not use the unit vector
