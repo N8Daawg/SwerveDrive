@@ -89,7 +89,7 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
 }
 
 void SwerveModule::moveToTarget2(double componentX, double componentY, double thetaOffset_rad){
-    cartesian_vector v = {componentX,componentY,0};
+    cartesian_vector target = {componentX,componentY,0};
     //some method to turn the motor towards the given vector.
 }
 
