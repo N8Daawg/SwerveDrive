@@ -228,18 +228,12 @@ void SwerveController::fixedMove(double inputX, double inputY, double w){
             double B = inputX + w*robotWidth/2;
             double C = inputY - w*robotLength/2;
             double D = inputY + w*robotLength/2;
-            
-            // assign vector components accordingly
-            cartesian_vector NE = {B,C,0};
-            cartesian_vector NW = {B,D,0};
-            cartesian_vector SE = {A,C,0};
-            cartesian_vector SW = {A,D,0};
 
             //turn each motor to their vector components
-            ne->moveRobotCentric2(NE, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
-            nw->moveRobotCentric2(NW, -M_PI / 2);
-            se->moveRobotCentric2(SE, -M_PI / 2);
-            sw->moveRobotCentric2(SW, -M_PI / 2);
+            ne->moveRobotCentric2(B,C, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
+            nw->moveRobotCentric2(B,D, -M_PI / 2);
+            se->moveRobotCentric2(A,C, -M_PI / 2);
+            sw->moveRobotCentric2(A,D, -M_PI / 2);
 
             
             break;
