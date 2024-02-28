@@ -30,6 +30,21 @@ class SwerveModule {
 
         PIDController controller;  // the position pid controller for the pivot motor
 
+        // updates the motor motion for each degree of freedom on the module
+        // based on the inputs. Calculates where to pivot to and how fast
+        // the drive motor should be spinning. The magnitude of x and y should
+        // be 1
+        //
+        // Params:
+        //    componentX      - the X component of the motor's movement vector
+        //    componentY      - the X component of the motor's movement vector
+        //
+        //    thetaOffset_rad - an angle to rotate the input vector by. This is useful
+        //                      because the of the discrepancy in where the 0 mark is for
+        //                      the controller vs the 0 mark for input from a joystick
+        // Return:
+        //    None
+        void fixedMoveToTarget(double componentX, double componentY, double thetaOffset_rad)
 
         // updates the motor motion for each degree of freedom on the module
         // based on the inputs. Calculates where to pivot to and how fast
@@ -126,6 +141,17 @@ class SwerveModule {
             controller.setConstants(constants);
         }
 
+        // Moves the robot based on user input. Updates target
+        // vectors and calls the motor motion commands
+        //
+        // Params:
+        //    componentX      - the X component of the motor's movement vector
+        //    componentY      - the X component of the motor's movement vector
+        //
+        //    thetaOffset_rad - an angle to rotate the input vector by. This is useful
+        //                      because the of the discrepancy in where the 0 mark is for
+        //                      the controller vs the 0 mark for input from a joystick
+        void fixedMoveRobotCentric(double componentX, double componentY, double thetaOffset_rad);
 
         // Moves the robot based on user input. Updates target
         // vectors and calls the motor motion commands

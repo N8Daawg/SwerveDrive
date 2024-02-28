@@ -144,7 +144,8 @@ int main() {
             double y = (ly - 127) / -127.0;  // axis is reversed, multiply by -1
             double w = (rx - 127) / 127.0;
 
-            drive.move(x, y, w);
+            drive.fixedMove(x, y, w);
+            //drive.move(x, y, w);
 
         } else {
             drive.move(0, 0, 0);  // shut off drive

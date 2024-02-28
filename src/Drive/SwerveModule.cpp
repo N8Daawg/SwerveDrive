@@ -88,12 +88,58 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
     }
 }
 
-void SwerveModule::moveToTarget2(double componentX, double componentY, double thetaOffset_rad){
+void SwerveModule::fixedMoveToTarget(double componentX, double componentY, double thetaOffset_rad){
     cartesian_vector target = {componentX,componentY,0};
     //some method to turn the motor towards the given vector.
+    / ensure target vector has a maximum magnitude of 1, if not use the unit vector
+    double targetVx = target.x;
+    double targetVy = target.y;
+    double m = magnitude({target.x, target.y, 0});
+    if(m > 1) {  // if magnitude is outside range, use the unit vector instead
+        targetVx = target.x / m;
+        targetVy = target.y / m;
+    }
+
+
+    // calculate the angle to move to based on the current angle
+    double currentAngle_rad = pivotMotor->getAngle_rad();
+    if(currentAngle_rad > M_PI) currentAngle_rad -= 2 * M_PI;  // convert to [-pi, pi]
+    
+    double fTargetAngle_rad = atan2(targetVy, targetVx);         // angle between [-pi, pi] if motor were to move forwards
+    double bTargetAngle_rad = atan2(targetVy, targetVx) + M_PI;  // angle between [-pi, pi] if motor were to move backwards
+    if(bTargetAngle_rad > M_PI) bTargetAngle_rad -= 2 * M_PI;
+
+    double targetAngle_rad;  // the closest angle to move to
+    int sgn;                 // multiplier for if going backwards or backwards
+    if(angleDiff_rad(currentAngle_rad, fTargetAngle_rad) <= angleDiff_rad(currentAngle_rad, bTargetAngle_rad)) {  // forwards is less change
+        targetAngle_rad = fTargetAngle_rad;
+        sgn = 1;
+    } else {  // backwards is less change
+        targetAngle_rad = bTargetAngle_rad;
+        sgn = -1;
+    }
+
+    // update the target velocities factoring in the sign
+    double driveV = sgn * sensitivity * magnitude({targetVx, targetVy, 0});
+
+    if(controller.getSetpoint() != targetAngle_rad) {  // if new setpoint
+        controller.newSetpoint(targetAngle_rad);
+    }
+
+    double pivotV = controller.step(currentAngle_rad);
+
+    // std::cout << "Target Vx: " << targetVx << "    Target Vy: " << targetVy << "    Target angle: " << targetAngle_rad << "    pivotV " << pivotV << "\n";
+
+    if(usePWM) {
+        driveMotor->dutyCycleSet(driveV);
+        pivotMotor->dutyCycleSet(pivotV);
+    } else {
+        driveMotor->velocitySet(driveV * maxDriveVelocity);
+        pivotMotor->velocitySet(pivotV * maxPivotVelocity);
+    }
 }
 
-void SwerveModule::moveRobotCentric2(double componentX, double componentY, double thetaOffset_rad){
+void SwerveModule::fixedMoveRobotCentric(double componentX, double componentY, double thetaOffset_rad){
      // Set motion to 0 if inputs are all 0, otherwise it will still rotate wheels to 0 position
      // rather than not doing any motion
     if(inputX == 0 && inputY == 0 && w==0) { 
@@ -105,7 +151,7 @@ void SwerveModule::moveRobotCentric2(double componentX, double componentY, doubl
             pivotMotor->velocitySet(0);
         }
     } else {
-        moveToTarget2(componentX, componentY, thetaOffset_rad);
+        fixedMoveToTarget(componentX, componentY, thetaOffset_rad);
     }
 }
 

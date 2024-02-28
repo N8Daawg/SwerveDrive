@@ -94,6 +94,15 @@ class SwerveController {
         //    inputX - the normalised x input
         //    inputY - the normalised y input
         //    w      - the normalised omega input
+        void fixedMove(double inputX, double inputY, double w);
+
+        // Moves the drivetrain based on the current mode and the
+        // given inputs
+        //
+        // Params:
+        //    inputX - the normalised x input
+        //    inputY - the normalised y input
+        //    w      - the normalised omega input
         void move(double inputX, double inputY, double w);
 
     private:
