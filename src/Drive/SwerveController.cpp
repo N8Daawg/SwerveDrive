@@ -224,16 +224,27 @@ void SwerveController::fixedMove(double inputX, double inputY, double w){
     switch(mode){
         case robot_centric:{
             // create the A, B, C, & D vector components to assign
-            double A = inputX - w*robotWidth/2;
-            double B = inputX + w*robotWidth/2;
-            double C = inputY - w*robotLength/2;
-            double D = inputY + w*robotLength/2;
+            double A = inputX - w;
+            double B = inputX + w;
+            double C = inputY - w;
+            double D = inputY + w;
+
+            double mNE = sqrt((B*B)+(C*C)); //NE wheel magnetude
+            double mNW = sqrt((B*B)+(D*D)); //NW
+            double mSE = sqrt((A*A)+(C*C)); //SE
+            double mSW = sqrt((A*A)+(D*D)); //SW
+
+            double max = 0;
+            if (mNE >=max) {max = mNE;}
+            if (mNW >=max) {max = mNW;}
+            if (mSE >=max) {max = mSE;}
+            if (mSW >=max) {max = SNW;}
 
             //turn each motor to their vector components
-            ne->moveRobotCentric2(B,C, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
-            nw->moveRobotCentric2(B,D, -M_PI / 2);
-            se->moveRobotCentric2(A,C, -M_PI / 2);
-            sw->moveRobotCentric2(A,D, -M_PI / 2);
+            ne->fixedMoveRobotCentric(B,C, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
+            nw->fixedMoveRobotCentric(B,D, -M_PI / 2);
+            se->fixedMoveRobotCentric(A,C, -M_PI / 2);
+            sw->fixedMoveRobotCentric(A,D, -M_PI / 2);
 
             
             break;

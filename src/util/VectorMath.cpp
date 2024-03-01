@@ -23,6 +23,11 @@ cartesian_vector cross_product(cartesian_vector v1, cartesian_vector v2) {
     return {x, y, z};
 }
 
+cartesian_vector scale_vector(cartesian_vector v1, cartesian_vector v2){
+    double M = magnitude(v2);
+    
+}
+
 
 double dot_product(cartesian_vector v1, cartesian_vector v2) {
     return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z);

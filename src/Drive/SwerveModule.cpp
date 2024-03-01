@@ -88,7 +88,7 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
     }
 }
 
-void SwerveModule::fixedMoveToTarget(double componentX, double componentY, double thetaOffset_rad){
+void SwerveModule::fixedMoveToTarget(double componentX, double componentY, double thetaOffset_radf, ){
     cartesian_vector target = {componentX,componentY,0};
     //some method to turn the motor towards the given vector.
     / ensure target vector has a maximum magnitude of 1, if not use the unit vector

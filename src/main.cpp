@@ -14,8 +14,7 @@
 #include "util/misc.hpp"
 
 
-double robotWidth = 12;
-double robotLength = robotWidth;
+
 int main() {        
     // Set up the joystick
     char* jsSource = "/dev/input/js0";
@@ -140,12 +139,16 @@ int main() {
             getAxisValue(3, &rx);
             getAxisValue(4, &ry);
 
-            double x = (lx - 127) / 127.0;
-            double y = (ly - 127) / -127.0;  // axis is reversed, multiply by -1
-            double w = (rx - 127) / 127.0;
-
-            drive.fixedMove(x, y, w);
+            //double x = (lx - 127) / 127.0;
+            //double y = (ly - 127) / -127.0;  // axis is reversed, multiply by -1
+            //double w = (rx - 127) / 127.0;
             //drive.move(x, y, w);
+
+            double x = lx/127;
+            double y = ly/-127;
+            double w = rx/(127*sqrt(2));
+            drive.fixedMove(x, y, w);
+            
 
         } else {
             drive.move(0, 0, 0);  // shut off drive
