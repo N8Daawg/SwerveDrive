@@ -1,6 +1,0 @@
-rasberry pi host name: ethan.storer@rasberrypi
-password: valporobotics
-
-to connect:
-    small window bottom left corner
-    connect to host via ssh
