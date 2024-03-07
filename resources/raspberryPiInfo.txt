@@ -26,7 +26,7 @@ open VS code
 open remote window -> connect to host -> hostname.local -> enter password
 
 - learning to navigate pi terminal (learning linux):
-[skim through this youtube playlist to get a feel for the commands.](https://www.youtube.com/playlist?list=PLGs0VKk2DiYypuwUUM2wxzcI9BJHK4Bfh)
+https://www.youtube.com/playlist?list=PLGs0VKk2DiYypuwUUM2wxzcI9BJHK4Bfh
 
 
 - setting up blank pi for testing:
