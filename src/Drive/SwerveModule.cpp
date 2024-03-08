@@ -88,10 +88,10 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
     }
 }
 
-void SwerveModule::fixedMoveToTarget(double componentX, double componentY, double thetaOffset_radf, ){
-    cartesian_vector target = {componentX,componentY,0};
+void SwerveModule::fixedMoveToTarget(cartesian_vector target, double thetaOffset_radf, ){
+    
     //some method to turn the motor towards the given vector.
-    / ensure target vector has a maximum magnitude of 1, if not use the unit vector
+    // ensure target vector has a maximum magnitude of 1, if not use the unit vector
     double targetVx = target.x;
     double targetVy = target.y;
     double m = magnitude({target.x, target.y, 0});
@@ -138,6 +138,7 @@ void SwerveModule::fixedMoveToTarget(double componentX, double componentY, doubl
         pivotMotor->velocitySet(pivotV * maxPivotVelocity);
     }
 }
+
 
 void SwerveModule::fixedMoveRobotCentric(double componentX, double componentY, double thetaOffset_rad){
      // Set motion to 0 if inputs are all 0, otherwise it will still rotate wheels to 0 position

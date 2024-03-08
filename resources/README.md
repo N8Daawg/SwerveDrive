@@ -30,7 +30,23 @@ open remote window -> connect to host -> hostname.local -> enter password
 
 
 ## setting up blank pi for testing:
+### Make sure PI is up to date:
+in ssh terminal
+    sudo apt update
+    sudo apt upgrade
+
 ### Bluetooth:
+install libusb-dev package
+    sudo apt install libusb-dev
+
+download and make folder for sixpair code
+    mkdir ~/sixpair
+    cd ~/sixpair
+    wget http://www.pabr.org/sixlinux/sixpair.c
+
+compile sixpair program
+    gcc -o sixpair sixpair.c -lusb
+
 
 see: [Connecting Playstation controllers to raspberry pi]()
 

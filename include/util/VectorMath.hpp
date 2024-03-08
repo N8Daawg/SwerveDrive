@@ -15,6 +15,10 @@ typedef struct {
     double z;
 } cartesian_vector;
 
+cartesian_vector copy(cartesian_vector other){
+    return cartesian_vector{other.x, other.y, other.z};
+}
+
 
 // Calculates the magnitude of a vector
 //

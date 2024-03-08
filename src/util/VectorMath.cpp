@@ -23,11 +23,6 @@ cartesian_vector cross_product(cartesian_vector v1, cartesian_vector v2) {
     return {x, y, z};
 }
 
-cartesian_vector scale_vector(cartesian_vector v1, cartesian_vector v2){
-    double M = magnitude(v2);
-    
-}
-
 
 double dot_product(cartesian_vector v1, cartesian_vector v2) {
     return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z);
@@ -51,4 +46,14 @@ cartesian_vector rotateVector(cartesian_vector v, double dtheta_rad) {
 
     cartesian_vector v2 = {r * cos(theta_rad), r * sin(theta_rad), 0};
     return v2;
+}
+
+void scale_vector(cartesian_vector target, cartesian_vector max){
+    double M = magnitude(max);
+    target.x = target.x/M;
+    target.y = target.y/M;
+}
+
+bool greaterThan(cartesian_vector v1, cartesian_vector v2){
+    return magnitude(v1) > magnitude(v2);
 }

@@ -219,7 +219,6 @@ void SwerveController::setSensitivity(int s) {
     sw->setSensitivity(s);
 }
 
-extern robotWidth;extern robotLength;
 void SwerveController::fixedMove(double inputX, double inputY, double w){
     switch(mode){
         case robot_centric:{
@@ -229,22 +228,31 @@ void SwerveController::fixedMove(double inputX, double inputY, double w){
             double C = inputY - w;
             double D = inputY + w;
 
-            double mNE = sqrt((B*B)+(C*C)); //NE wheel magnetude
-            double mNW = sqrt((B*B)+(D*D)); //NW
-            double mSE = sqrt((A*A)+(C*C)); //SE
-            double mSW = sqrt((A*A)+(D*D)); //SW
+            cartesian_vector NE = {B,C,0};
+            cartesian_vector NW = {B,D,0};
+            cartesian_vector SE = {A,C,0};
+            cartesian_vector SW = {A,D,0};
 
-            double max = 0;
-            if (mNE >=max) {max = mNE;}
-            if (mNW >=max) {max = mNW;}
-            if (mSE >=max) {max = mSE;}
-            if (mSW >=max) {max = SNW;}
+            cartesian_vector unit = {1/sqrt(2),  1/sqrt(2),  0}; //vector of magnetude 1
+            cartesian_vector max = copy(unit);
+            if (greaterThan(NE,max)) {max =NE;}
+            if (greaterThan(NW,max)) {max =NW;}
+            if (greaterThan(SE,max)) {max =SE;}
+            if (greaterThan(SW,max)) {max =SW;}
+
+            if (greaterThan(max,unit)) { //if the max vector is larger than 1, scale all to 1.
+                scale_vector(NE,max);
+                scale_vector(NW,max);
+                scale_vector(SE,max);
+                scale_vector(SW,max);
+            }
+
 
             //turn each motor to their vector components
-            ne->fixedMoveRobotCentric(B,C, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
-            nw->fixedMoveRobotCentric(B,D, -M_PI / 2);
-            se->fixedMoveRobotCentric(A,C, -M_PI / 2);
-            sw->fixedMoveRobotCentric(A,D, -M_PI / 2);
+            ne->fixedMoveRobotCentric(NE, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
+            nw->fixedMoveRobotCentric(NW, -M_PI / 2);
+            se->fixedMoveRobotCentric(SE, -M_PI / 2);
+            sw->fixedMoveRobotCentric(SW, -M_PI / 2);
 
             
             break;

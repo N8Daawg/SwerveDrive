@@ -44,7 +44,7 @@ class SwerveModule {
         //                      the controller vs the 0 mark for input from a joystick
         // Return:
         //    None
-        void fixedMoveToTarget(double componentX, double componentY, double thetaOffset_rad)
+        void fixedMoveToTarget(cartesian_vector target, double thetaOffset_rad)
 
         // updates the motor motion for each degree of freedom on the module
         // based on the inputs. Calculates where to pivot to and how fast
