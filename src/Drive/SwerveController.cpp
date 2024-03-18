@@ -247,14 +247,19 @@ void SwerveController::fixedMove(double inputX, double inputY, double w){
                 scale_vector(SW,max);
             }
 
-
-            //turn each motor to their vector components
+            /*
             ne->fixedMoveRobotCentric(NE, -M_PI / 2);  // offset by -pi/2 to accout for discrepancy in controller 0 angle and module 0 angle
             nw->fixedMoveRobotCentric(NW, -M_PI / 2);
             se->fixedMoveRobotCentric(SE, -M_PI / 2);
             sw->fixedMoveRobotCentric(SW, -M_PI / 2);
+            */
 
-            
+            //turn each motor to their vector components
+            ne->fixedMoveRobotCentric(inputX, inputY, w, NE);
+            nw->fixedMoveRobotCentric(inputX, inputY, w, NW);
+            se->fixedMoveRobotCentric(inputX, inputY, w, SE);
+            sw->fixedMoveRobotCentric(inputX, inputY, w, SW);
+ 
             break;
         }
         case field_centric: {

@@ -88,7 +88,7 @@ void SwerveModule::moveToTarget(double inputX, double inputY, double w, double t
     }
 }
 
-void SwerveModule::fixedMoveToTarget(cartesian_vector target, double thetaOffset_radf, ){
+void SwerveModule::fixedMoveToTarget(cartesian_vector target){
     
     //some method to turn the motor towards the given vector.
     // ensure target vector has a maximum magnitude of 1, if not use the unit vector
@@ -140,7 +140,8 @@ void SwerveModule::fixedMoveToTarget(cartesian_vector target, double thetaOffset
 }
 
 
-void SwerveModule::fixedMoveRobotCentric(double componentX, double componentY, double thetaOffset_rad){
+void SwerveModule::fixedMoveRobotCentric(double inputX, double inputY, double w, cartesian_vector target){
+     
      // Set motion to 0 if inputs are all 0, otherwise it will still rotate wheels to 0 position
      // rather than not doing any motion
     if(inputX == 0 && inputY == 0 && w==0) { 
@@ -152,7 +153,7 @@ void SwerveModule::fixedMoveRobotCentric(double componentX, double componentY, d
             pivotMotor->velocitySet(0);
         }
     } else {
-        fixedMoveToTarget(componentX, componentY, thetaOffset_rad);
+        fixedMoveToTarget(target);
     }
 }
 
@@ -171,4 +172,24 @@ void SwerveModule::moveRobotCentric(double inputX, double inputY, double w, doub
     } else {
         moveToTarget(inputX, inputY, w, thetaOffset_rad);
     }
+}
+
+//singular debug wrapper for NE test module
+void SwerveModule::moveSingular(double inputX, double inputY, double w){
+    double A = inputX - w;
+    double B = inputX + w;
+    double C = inputY - w;
+    double D = inputY + w;
+
+    cartesian_vector target = {B,C,0};
+    
+    cartesian_vector unit = {1/sqrt(2),  1/sqrt(2),  0}; //vector of magnetude 1
+    cartesian_vector max = copy(unit);
+
+    if (greaterThan(target,max)) {max=target;}
+    if (greaterThan(max,unit)) { //if the max vector is larger than 1, scale all to 1.
+        scale_vector(target,max);
+    }
+
+    fixedMoveRobotCentric(inputX, inputY, w, target);
 }

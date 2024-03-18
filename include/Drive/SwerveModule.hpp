@@ -44,7 +44,7 @@ class SwerveModule {
         //                      the controller vs the 0 mark for input from a joystick
         // Return:
         //    None
-        void fixedMoveToTarget(cartesian_vector target, double thetaOffset_rad)
+        void fixedMoveToTarget(cartesian_vector target);
 
         // updates the motor motion for each degree of freedom on the module
         // based on the inputs. Calculates where to pivot to and how fast
@@ -151,7 +151,7 @@ class SwerveModule {
         //    thetaOffset_rad - an angle to rotate the input vector by. This is useful
         //                      because the of the discrepancy in where the 0 mark is for
         //                      the controller vs the 0 mark for input from a joystick
-        void fixedMoveRobotCentric(double componentX, double componentY, double thetaOffset_rad);
+        void fixedMoveRobotCentric(double inputX, double inputY, double w, cartesian_vector target);
 
         // Moves the robot based on user input. Updates target
         // vectors and calls the motor motion commands
@@ -167,7 +167,7 @@ class SwerveModule {
         void moveRobotCentric(double inputX, double inputY, double w, double thetaOffset_rad);
 
 
-
+        void moveSingular(double inputX, double inputY, double w);
 };
 
 

@@ -84,4 +84,8 @@ double angleDiff_rad(double a1, double a2);
 cartesian_vector rotateVector(cartesian_vector v, double dtheta_rad);
 
 
+void scale_vector(cartesian_vector target, cartesian_vector max);
+
+bool greaterThan(cartesian_vector v1, cartesian_vector v2);
+
 #endif
