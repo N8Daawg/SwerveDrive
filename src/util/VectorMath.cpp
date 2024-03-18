@@ -1,7 +1,7 @@
 #include "util/VectorMath.hpp"
 
 
-cartesian_vector copy(cartesian_vector other){
+cartesian_vector copy(cartesian_vector other) {
     return {other.x, other.y, other.z};
 }
 

@@ -5,6 +5,7 @@
 #include "CAN/SparkMaxMC.hpp"
 #include "Drive/SwerveController.hpp"
 #include "Drive/SwerveModule.hpp"
+#include "VectorMath.hpp"
 #include "util/misc.hpp"
 
 
