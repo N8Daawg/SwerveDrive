@@ -28,6 +28,8 @@ open remote window -> connect to host -> hostname.local -> enter password
 ## learning to navigate pi terminal (learning linux):
 [Youtube link to linux terminal course](https://www.youtube.com/playlist?list=PLGs0VKk2DiYypuwUUM2wxzcI9BJHK4Bfh)
 
+[Linux commands](https://www.geeksforgeeks.org/linux-commands/)
+
 
 ## setting up blank pi for testing:
 ### Make sure PI is up to date:
