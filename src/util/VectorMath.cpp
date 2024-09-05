@@ -1,6 +1,5 @@
 #include "util/VectorMath.hpp"
 
-
 cartesian_vector copy(cartesian_vector other) {
     return {other.x, other.y, other.z};
 }
@@ -61,4 +60,3 @@ void scale_vector(cartesian_vector target, cartesian_vector max){
 bool greaterThan(cartesian_vector v1, cartesian_vector v2){
     return magnitude(v1) > magnitude(v2);
 }
-
